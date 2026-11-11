@@ -1,0 +1,8 @@
+name: Teste Linux
+on: workflow_dispatch
+jobs:
+  oi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: echo funcionando && uname -a
