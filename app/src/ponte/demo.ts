@@ -18,7 +18,7 @@ export function motorDemo(): Motor {
   const vazio = { movidos: [], falhas: ["Modo demonstração: abra o app do Windows ou do Android para mexer nos arquivos."], simulacao: true };
   return {
     plataforma: "demonstracao",
-    recursos: { extrair: false, defender: false, inicializacao: false, abrirPasta: false },
+    recursos: { extrair: false, defender: false, inicializacao: false, abrirPasta: false, arquivosSuspeitos: false, verificarApps: false, permissoes: false, atualizaSozinho: false },
     diagnostico: async () => diag(),
     otimizarTudo: async () => ({ limpeza: { apagados: 0, liberado_bytes: 0, falhas: [], simulacao: true }, memoria: { suportado: false, processos_ajustados: 0, liberado_bytes: 0, nota: "Demonstração." }, ram_antes: 55, ram_depois: 55 }),
     escolherPasta: async () => null,
@@ -35,6 +35,8 @@ export function motorDemo(): Motor {
     inicioPeloMenu: async () => null, abrirPasta: async () => undefined, abrirLink: async (u) => { window.open(u, "_blank"); },
     estadoProtecao: async () => ({ suportado: false, antivirus_ligado: null, tempo_real_ligado: null, assinaturas_dias: null, firewall: [], nota: "Modo demonstração." }),
     defenderVarrer: async () => { throw new Error("Modo demonstração."); },
-    verificarArquivos: async () => ({ analisados: 0, achados: [] }), programasIniciais: async () => [], verificarHosts: async () => []
+    verificarArquivos: async () => ({ analisados: 0, achados: [] }), programasIniciais: async () => [], verificarHosts: async () => [],
+    permissoes: async () => [], pedirPermissao: async () => undefined, abrirConfiguracao: async () => undefined,
+    verificarApps: async () => ({ analisados: 0, achados: [] }), instalarAtualizacao: async () => { throw new Error("Modo demonstração."); }
   };
 }

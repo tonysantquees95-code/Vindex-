@@ -22,6 +22,7 @@ export function Seguranca() {
   const [msg, setMsg] = useState("");
   const [erro, setErro] = useState("");
   const [verif, setVerif] = useState<ResultadoVerificacao | null>(null);
+  const [apps, setApps] = useState<ResultadoVerificacao | null>(null);
   const [hosts, setHosts] = useState<string[] | null>(null);
   const [link, setLink] = useState("");
   const [analise, setAnalise] = useState<AnaliseDeLink | null>(null);
@@ -35,7 +36,19 @@ export function Seguranca() {
 
   return (
     <div className="space-y-4">
-      {estado?.suportado && (
+      {estado?.suportado && estado.itens && (
+        <Cartao titulo="Proteção do aparelho">
+          <ul className="space-y-2">{estado.itens.map((i) => (
+            <li key={i.rotulo} className="rounded-xl border border-borda px-3 py-2 text-sm">
+              <div className="flex items-center justify-between gap-2"><span>{i.rotulo}</span><span className={`flex-none text-xs ${i.ok == null ? "text-suave" : i.ok ? "text-ok" : "text-erro"}`}>{i.ok == null ? "confira" : i.ok ? "ok" : "ajustar"}</span></div>
+              <div className="text-xs text-suave">{i.detalhe}</div>
+              {i.config && i.ok !== true && <button className="mt-1 text-xs text-neon underline" onClick={() => void motor.abrirConfiguracao(i.config!)}>Abrir configuração</button>}
+            </li>
+          ))}</ul>
+          {estado.nota && <p className="mt-2 text-xs text-suave">{estado.nota}</p>}
+        </Cartao>
+      )}
+      {estado?.suportado && !estado.itens && (
         <Cartao titulo="Proteção do Windows">
           <ul className="space-y-2">
             <Selo ok={estado.antivirus_ligado} texto="Antivírus (Microsoft Defender)" />
@@ -56,7 +69,29 @@ export function Seguranca() {
       {erro && <Aviso tom="erro">{erro}</Aviso>}
       {msg && <Aviso tom="ok">{msg}</Aviso>}
 
-      {motor.recursos.defender && (
+      {motor.recursos.verificarApps && (
+        <Cartao titulo="Apps instalados">
+          <p className="mb-3 text-sm text-suave">O Vindex confere os apps que você instalou: os que vieram de fora da loja e os que pedem poderes perigosos (ler a tela, desenhar por cima de outros apps, ler SMS ou notificações).</p>
+          <Botao variante="primario" disabled={!!ocupado} onClick={async () => { const r = await rodar("apps", () => motor.verificarApps()); if (r) setApps(r); }}>{ocupado === "apps" ? "Verificando…" : "Verificar apps"}</Botao>
+          {apps && (
+            <div className="mt-3">
+              <p className="text-sm">{apps.analisados} apps analisados · {apps.achados.length === 0 ? <span className="text-ok">nada suspeito</span> : <span className="text-aviso">{apps.achados.length} para conferir</span>}</p>
+              <ul className="mt-2 max-h-80 space-y-2 overflow-auto">{apps.achados.map((a) => {
+                const pacote = /\(([^)]+)\)$/.exec(a.caminho)?.[1];
+                return (
+                  <li key={a.caminho} className={`rounded-xl border px-3 py-2 text-sm ${COR_NIVEL[a.nivel]}`}>
+                    <div className="flex justify-between gap-2"><span className="min-w-0 break-all font-medium">{a.caminho.replace(/ \([^)]+\)$/, "")}</span><span className="flex-none text-xs uppercase">{ROTULO_NIVEL[a.nivel]}</span></div>
+                    <div className="text-xs opacity-90">{a.motivo}</div>
+                    {pacote && <button className="mt-1 text-xs underline" onClick={() => void motor.abrirConfiguracao(`app:${pacote}`)}>Abrir o app nas configurações (parar ou desinstalar)</button>}
+                  </li>
+                );
+              })}</ul>
+            </div>
+          )}
+        </Cartao>
+      )}
+
+      {motor.recursos.arquivosSuspeitos && (
         <Cartao titulo="Verificação de arquivos suspeitos">
           <p className="mb-3 text-sm text-suave">O Vindex olha o nome, o tipo e o começo dos arquivos das pastas abaixo e avisa o que parece golpe: extensão dupla (fatura.pdf.exe), scripts, atalhos e programas minúsculos. Não executa nada. <b>Não substitui o antivírus.</b></p>
           <Pastas pastas={pastas} adicionar={adicionar} remover={remover} />

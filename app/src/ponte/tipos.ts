@@ -5,10 +5,12 @@ export interface Diagnostico {
   temperatura_max: number | null; sensores: { nome: string; celsius: number }[];
   bateria: { nivel: number; estado: string; saude: number } | null;
   discos: { nome: string; ponto: string; tipo: string; sistema: string; total: number; livre: number; percentual_usado: number; saude: string }[];
-  processos: { pid: number; nome: string; cpu: number; memoria: number }[];
+  processos: { pid: number; nome: string; cpu: number; memoria: number; tempo_uso_s?: number }[];
   // campos novos (o Android antigo pode não mandar)
   swap_total?: number; swap_usado?: number; processos_total?: number;
-  rede?: { recebido: number; enviado: number; interfaces: number };
+  rede?: { recebido: number; enviado: number; interfaces: number; tipo?: string; internet?: boolean; vpn?: boolean; velocidade_mbps?: number; sinal?: number };
+  /** true quando o Android não deixa ler a carga real e o número é estimado pela frequência dos núcleos */
+  cpu_estimado?: boolean;
 }
 export interface GrupoDuplicado { sha256: string; bytes: number; caminhos: string[]; desperdicio: number }
 export interface Movimento { de: string; para: string; motivo: string }
@@ -35,6 +37,8 @@ export interface ResultadoExtracao { destino: string; arquivos: number; bytes: n
 export interface EstadoProtecao {
   suportado: boolean; antivirus_ligado: boolean | null; tempo_real_ligado: boolean | null; assinaturas_dias: number | null;
   firewall: [string, boolean][]; nota: string;
+  /** Android: verificações do aparelho (bloqueio de tela, Play Protect, patch…). `config` abre a tela certa do sistema. */
+  itens?: { rotulo: string; ok: boolean | null; detalhe: string; config: string | null }[];
 }
 export interface Achado { caminho: string; nivel: "alto" | "medio" | "baixo"; motivo: string }
 export interface ResultadoVerificacao { analisados: number; achados: Achado[] }
@@ -44,7 +48,18 @@ export interface PlanoDeLimpeza { total_bytes: number; arquivos: number; por_alv
 export interface InicioPeloMenu { modo: "escolher" | "aqui"; arquivo: string }
 
 /** O que cada plataforma sabe fazer; a interface esconde o que não existe. */
-export interface Recursos { extrair: boolean; defender: boolean; inicializacao: boolean; abrirPasta: boolean }
+export interface Recursos {
+  extrair: boolean; defender: boolean; inicializacao: boolean; abrirPasta: boolean;
+  /** verificar arquivos suspeitos nas pastas (Windows e Android) */
+  arquivosSuspeitos: boolean;
+  /** verificar os apps instalados (Android) */
+  verificarApps: boolean;
+  /** o app pede permissões ao Android antes de usar */
+  permissoes: boolean;
+  /** o app se atualiza baixando o APK e abrindo a instalação */
+  atualizaSozinho: boolean;
+}
+export interface Permissao { id: string; rotulo: string; motivo: string; obrigatoria: boolean; concedida: boolean }
 
 export interface Motor {
   plataforma: "windows" | "android" | "demonstracao";
@@ -76,4 +91,10 @@ export interface Motor {
   verificarArquivos(raizes: string[]): Promise<ResultadoVerificacao>;
   programasIniciais(): Promise<ProgramaInicial[]>;
   verificarHosts(): Promise<string[]>;
+  permissoes(): Promise<Permissao[]>;
+  pedirPermissao(id: string): Promise<void>;
+  abrirConfiguracao(id: string): Promise<void>;
+  verificarApps(): Promise<ResultadoVerificacao>;
+  /** Android: baixa o APK, confere o SHA-256 e abre a confirmação de instalação. */
+  instalarAtualizacao(url: string, sha256: string): Promise<void>;
 }

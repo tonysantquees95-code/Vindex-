@@ -352,4 +352,76 @@ public final class Motor {
         for (Map.Entry<String, long[]> e : por.entrySet()) cats.put(e.getKey(), new JSONArray(Arrays.asList(e.getValue()[0], e.getValue()[1])));
         return new JSONObject().put("arquivos", a.size()).put("bytes", total).put("categorias", cats);
     }
+
+    // ---------------------------------------------------------------- leitura do aparelho (puro, testável)
+    /** /proc/meminfo → {MemTotal, MemAvailable, SwapTotal, SwapFree} em bytes (-1 quando não consta). */
+    public static long[] lerMeminfo(String texto) {
+        long[] r = {-1, -1, -1, -1};
+        String[] chaves = {"MemTotal:", "MemAvailable:", "SwapTotal:", "SwapFree:"};
+        for (String linha : texto.split("\n")) {
+            for (int i = 0; i < chaves.length; i++) {
+                if (!linha.startsWith(chaves[i])) continue;
+                String[] p = linha.substring(chaves[i].length()).trim().split("\\s+");
+                try { r[i] = Long.parseLong(p[0]) * 1024L; } catch (Exception e) { /* linha estranha */ }
+            }
+        }
+        return r;
+    }
+
+    /** "2025-09-05" (Build.VERSION.SECURITY_PATCH) → dias de atraso; -1 se não der para ler. */
+    public static long diasDoPatch(String patch, long agoraMs) {
+        try {
+            String[] p = patch.trim().split("-");
+            java.util.Calendar c = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+            c.clear();
+            c.set(Integer.parseInt(p[0]), Integer.parseInt(p[1]) - 1, Integer.parseInt(p[2]));
+            return Math.max(0, (agoraMs - c.getTimeInMillis()) / 86_400_000L);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    private static final List<String> EXECUTAVEIS = Arrays.asList("apk", "exe", "scr", "bat", "cmd", "vbs", "ps1", "jar", "msi", "com", "pif", "lnk", "js", "hta");
+    private static final List<String> ISCAS = Arrays.asList("pdf", "doc", "docx", "xls", "xlsx", "jpg", "jpeg", "png", "gif", "mp4", "mp3", "txt", "zip", "rar");
+
+    /** {nivel, motivo} para um arquivo que parece golpe; null se parece normal. */
+    public static String[] suspeito(String nome, long bytes) {
+        String n = nome.toLowerCase(Locale.ROOT);
+        String ext = extensao(n);
+        if (!EXECUTAVEIS.contains(ext)) return null;
+        String semUltima = n.substring(0, n.length() - ext.length() - 1);
+        String penultima = extensao(semUltima);
+        if (ISCAS.contains(penultima)) return new String[]{"alto", "Extensão dupla (." + penultima + "." + ext + "): finge ser " + penultima.toUpperCase(Locale.ROOT) + " mas é um programa."};
+        if (ext.equals("apk")) return new String[]{"medio", "Instalador de app (APK) fora da loja. Só instale se veio do site oficial do app."};
+        if (ext.equals("lnk") || ext.equals("hta") || ext.equals("scr") || ext.equals("pif") || ext.equals("vbs") || ext.equals("bat") || ext.equals("cmd") || ext.equals("ps1") || ext.equals("exe") || ext.equals("msi") || ext.equals("com"))
+            return new String[]{"medio", "Programa de Windows no celular: não funciona aqui e costuma vir em golpe por e-mail ou WhatsApp."};
+        if (ext.equals("js") || ext.equals("jar")) return new String[]{"baixo", "Script/programa: confira de onde veio antes de abrir."};
+        return null;
+    }
+
+    public static JSONObject verificar(List<Arq> arquivos) throws JSONException {
+        JSONArray achados = new JSONArray();
+        for (Arq a : arquivos) {
+            String[] s = suspeito(a.nome, a.bytes);
+            if (s != null) achados.put(new JSONObject().put("caminho", a.caminho.getPath()).put("nivel", s[0]).put("motivo", s[1]));
+        }
+        return new JSONObject().put("analisados", arquivos.size()).put("achados", achados);
+    }
+
+    /** Avalia um app instalado a partir de fatos já levantados. null = nada a apontar. */
+    public static String[] riscoDoApp(boolean foraDaLoja, boolean acessibilidade, boolean sobrepoe, boolean lerSms, boolean ouveNotificacoes, boolean admin, boolean depuravel) {
+        List<String> motivos = new ArrayList<>();
+        if (acessibilidade) motivos.add("usa o serviço de acessibilidade (pode ler a tela e tocar por você)");
+        if (sobrepoe) motivos.add("pode desenhar por cima de outros apps");
+        if (lerSms) motivos.add("lê e envia SMS");
+        if (ouveNotificacoes) motivos.add("lê as suas notificações");
+        if (admin) motivos.add("é administrador do aparelho");
+        if (depuravel) motivos.add("está em modo de depuração");
+        int graves = motivos.size();
+        if (graves == 0 && !foraDaLoja) return null;
+        if (graves == 0) return new String[]{"baixo", "Instalado fora da loja oficial (APK). Se foi você quem instalou, tudo bem."};
+        String texto = "Este app " + String.join("; ", motivos) + (foraDaLoja ? ", e veio de fora da loja oficial." : ".");
+        String nivel = foraDaLoja && (acessibilidade || sobrepoe || lerSms || admin) ? "alto" : "medio";
+        return new String[]{nivel, texto};
+    }
 }

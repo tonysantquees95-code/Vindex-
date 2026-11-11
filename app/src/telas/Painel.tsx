@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMotor } from "../estado";
 import { acrescentar, bytes, tempoLigado } from "../formato";
+import { Icone } from "../icones";
 import type { Diagnostico } from "../ponte";
 import { Aviso, Barra, Botao, Cartao, Grafico, Velocimetro } from "../ui";
 
@@ -27,6 +28,8 @@ export function Painel({ ir }: { ir: (aba: string) => void }) {
   const [erro, setErro] = useState("");
   const [hist, setHist] = useState<{ cpu: number[]; ram: number[] }>({ cpu: [], ram: [] });
   const vivo = useRef(true);
+  const anterior = useRef<{ rx: number; tx: number; t: number } | null>(null);
+  const [veloc, setVeloc] = useState<{ down: number; up: number } | null>(null);
 
   const ler = useCallback(async () => {
     try {
@@ -34,6 +37,12 @@ export function Painel({ ir }: { ir: (aba: string) => void }) {
       if (!vivo.current) return;
       setD(x);
       setErro("");
+      if (x.rede) {
+        const agora = Date.now();
+        const a = anterior.current;
+        if (a && agora > a.t && x.rede.recebido >= a.rx) setVeloc({ down: ((x.rede.recebido - a.rx) * 1000) / (agora - a.t), up: ((x.rede.enviado - a.tx) * 1000) / (agora - a.t) });
+        anterior.current = { rx: x.rede.recebido, tx: x.rede.enviado, t: agora };
+      }
       setHist((h) => ({ cpu: acrescentar(h.cpu, x.cpu_uso), ram: acrescentar(h.ram, x.memoria.percentual) }));
     } catch (e) {
       if (vivo.current) setErro(e instanceof Error ? e.message : String(e));
@@ -61,14 +70,14 @@ export function Painel({ ir }: { ir: (aba: string) => void }) {
           <div className="max-w-xs text-left text-sm text-suave">{saude.dicas.length ? saude.dicas.map((t) => <div key={t}>• {t}</div>) : <div>Tudo certo por aqui. Quer liberar ainda mais espaço?</div>}</div>
         </div>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
-          <Botao variante="primario" className="brilho !min-h-12 px-6" onClick={() => ir("otimizar")}>⚡ Otimizar…</Botao>
-          <Botao className="!min-h-12" onClick={() => ir("seguranca")}>🛡️ Segurança</Botao>
+          <Botao variante="primario" className="brilho !min-h-12 px-6" onClick={() => ir("otimizar")}><Icone nome="otimizar" tam={18} />Otimizar…</Botao>
+          <Botao className="!min-h-12" onClick={() => ir("seguranca")}><Icone nome="seguranca" tam={18} />Segurança</Botao>
         </div>
       </Cartao>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Cartao><Velocimetro valor={d.cpu_uso} rotulo="CPU" detalhe={`${d.cpu_nucleos} núcleos`} /></Cartao>
-        <Cartao><Velocimetro valor={d.memoria.percentual} rotulo="RAM" detalhe={`${bytes(d.memoria.usada)} de ${bytes(d.memoria.total)}`} /></Cartao>
+        <Cartao><Velocimetro valor={d.cpu_uso} rotulo={d.cpu_estimado ? "CPU (estimada)" : "CPU"} detalhe={`${d.cpu_nucleos} núcleos`} /></Cartao>
+        <Cartao><Velocimetro valor={d.memoria.percentual} rotulo="RAM" detalhe={`${bytes(d.memoria.usada)} de ${bytes(d.memoria.total)}${d.swap_total ? ` · +${bytes(d.swap_total)} virtual` : ""}`} /></Cartao>
         <Cartao>{disco ? <Velocimetro valor={disco.percentual_usado} rotulo={`Disco ${disco.ponto}`} detalhe={`${disco.tipo} · ${bytes(disco.livre)} livres`} /> : <p className="py-10 text-center text-sm text-suave">Sem disco lido.</p>}</Cartao>
         <Cartao>
           {d.temperatura_max != null ? <Velocimetro valor={d.temperatura_max} rotulo="Temperatura" unidade="°C" detalhe="sensor mais quente" />
@@ -81,16 +90,16 @@ export function Painel({ ir }: { ir: (aba: string) => void }) {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Ficha rotulo="Ligado há" valor={tempoLigado(d.ligado_ha_s)} />
         <Ficha rotulo="Processos" valor={String(d.processos_total ?? d.processos.length)} detalhe="em execução" />
-        <Ficha rotulo="Rede" valor={d.rede ? `↓ ${bytes(d.rede.recebido)}` : "—"} detalhe={d.rede ? `↑ ${bytes(d.rede.enviado)} desde que ligou` : undefined} />
+        <Ficha rotulo="Rede" valor={d.rede ? (d.rede.tipo ?? `↓ ${bytes(d.rede.recebido)}`) : "—"} detalhe={d.rede ? (veloc ? `↓ ${bytes(veloc.down)}/s · ↑ ${bytes(veloc.up)}/s` : `↓ ${bytes(d.rede.recebido)} · ↑ ${bytes(d.rede.enviado)}`) : undefined} />
         <Ficha rotulo="Processador" valor={`${d.cpu_nucleos} núcleos`} detalhe={d.cpu_nome ? d.cpu_nome.replace(/\(R\)|\(TM\)/g, "").slice(0, 30) : undefined} />
       </div>
 
-      <Cartao titulo="Consumo em tempo real"><Grafico series={[{ nome: "CPU", cor: "#22d3ee", valores: hist.cpu }, { nome: "RAM", cor: "#e879f9", valores: hist.ram }]} /></Cartao>
+      <Cartao titulo="Consumo em tempo real"><Grafico series={[{ nome: "CPU", cor: "var(--color-neon)", valores: hist.cpu }, { nome: "RAM", cor: "var(--color-magenta)", valores: hist.ram }]} /></Cartao>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <Cartao titulo="Quem mais consome">
+        <Cartao titulo={d.processos.some((x) => x.tempo_uso_s != null) ? "Apps mais usados hoje" : "Quem mais consome"}>
           <ul className="space-y-2">{d.processos.map((p) => (
-            <li key={p.pid} className="flex items-center justify-between gap-2 text-sm"><span className="min-w-0 truncate">{p.nome}</span><span className="num flex-none text-xs text-suave">{p.cpu.toFixed(0)}% CPU · {bytes(p.memoria)}</span></li>
+            <li key={p.pid} className="flex items-center justify-between gap-2 text-sm"><span className="min-w-0 truncate">{p.nome}</span><span className="num flex-none text-xs text-suave">{p.tempo_uso_s != null ? `${Math.max(1, Math.round(p.tempo_uso_s / 60))} min hoje` : `${p.cpu.toFixed(0)}% CPU · ${bytes(p.memoria)}`}</span></li>
           ))}</ul>
         </Cartao>
         <Cartao titulo="Armazenamento e bateria">

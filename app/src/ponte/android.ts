@@ -1,10 +1,14 @@
 import { registerPlugin } from "@capacitor/core";
-import type { Motor } from "./tipos";
+import type { Motor, Permissao } from "./tipos";
 
 /** Mesmo contrato do Rust, implementado em Kotlin (plugin "Vindex"). */
 interface PluginVindex {
   motor(opcoes: { comando: string; args: string }): Promise<{ resultado: string }>;
   escolherPasta(): Promise<{ pasta: string | null }>;
+  permissoes(): Promise<{ lista: Permissao[] }>;
+  pedirPermissao(o: { id: string }): Promise<void>;
+  abrirConfiguracao(o: { id: string }): Promise<void>;
+  instalarAtualizacao(o: { url: string; sha256: string }): Promise<void>;
 }
 const Vindex = registerPlugin<PluginVindex>("Vindex");
 
@@ -14,7 +18,7 @@ export function motorAndroid(): Motor {
   const c = async <T>(comando: string, args: Record<string, unknown> = {}): Promise<T> => JSON.parse((await Vindex.motor({ comando, args: JSON.stringify(args) })).resultado) as T;
   return {
     plataforma: "android",
-    recursos: { extrair: false, defender: false, inicializacao: false, abrirPasta: false },
+    recursos: { extrair: false, defender: false, inicializacao: false, abrirPasta: false, arquivosSuspeitos: true, verificarApps: true, permissoes: true, atualizaSozinho: true },
     diagnostico: (processos = 8) => c("diagnostico", { processos }),
     otimizarTudo: (simulacao = false) => c("otimizar_tudo", { simulacao }),
     escolherPasta: async () => (await Vindex.escolherPasta()).pasta,
@@ -40,10 +44,15 @@ export function motorAndroid(): Motor {
     inicioPeloMenu: async () => null,
     abrirPasta: async () => undefined,
     abrirLink: async (url) => { window.open(url, "_blank"); },
-    estadoProtecao: async () => ({ suportado: false, antivirus_ligado: null, tempo_real_ligado: null, assinaturas_dias: null, firewall: [], nota: "No Android, a proteção é feita pelo Google Play Protect." }),
+    estadoProtecao: () => c("estado_protecao"),
     defenderVarrer: indisponivel,
-    verificarArquivos: indisponivel,
+    verificarArquivos: (raizes) => c("verificar_arquivos", { raizes }),
     programasIniciais: async () => [],
-    verificarHosts: async () => []
+    verificarHosts: async () => [],
+    permissoes: async () => (await Vindex.permissoes()).lista,
+    pedirPermissao: (id) => Vindex.pedirPermissao({ id }),
+    abrirConfiguracao: (id) => Vindex.abrirConfiguracao({ id }),
+    verificarApps: () => c("verificar_apps"),
+    instalarAtualizacao: (url, sha256) => Vindex.instalarAtualizacao({ url, sha256 })
   };
 }

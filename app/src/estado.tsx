@@ -17,6 +17,9 @@ export function useMotor(): Motor {
 
 const CHAVE = "vindex.pastas";
 const CHAVE_INICIAL = "vindex.pastas.iniciadas";
+export function pastasSalvas(): string[] {
+  try { const l = JSON.parse(localStorage.getItem(CHAVE) ?? "[]"); return Array.isArray(l) ? l.filter((x) => typeof x === "string") : []; } catch { return []; }
+}
 export function usePastas() {
   const motor = useMotor();
   const [pastas, setPastas] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem(CHAVE) ?? "[]"); } catch { return []; } });
@@ -26,8 +29,9 @@ export function usePastas() {
     try { jaFez = localStorage.getItem(CHAVE_INICIAL) === "1"; } catch { /* ok */ }
     if (jaFez || pastas.length) return;
     void motor.pastasConhecidas().then((l) => {
-      const d = l.find((p) => p.id === "downloads");
-      if (d) setPastas((atual) => (atual.length ? atual : [d.caminho]));
+      // no celular já deixa Downloads e Documentos escolhidos (é onde a bagunça costuma estar); no computador, só Downloads
+      const escolhidas = l.filter((p) => p.id === "downloads" || (motor.plataforma === "android" && p.id === "documentos")).map((p) => p.caminho);
+      if (escolhidas.length) setPastas((atual) => (atual.length ? atual : escolhidas));
       try { localStorage.setItem(CHAVE_INICIAL, "1"); } catch { /* ok */ }
     }).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMotor, usePastas } from "../estado";
 import { bytes, nomeDoArquivo, pastaDoArquivo } from "../formato";
 import type { Arquivo, GrupoDuplicado, Movimento, ResultadoDeMovimento, ResumoVarredura } from "../ponte";
@@ -35,6 +35,8 @@ export function Arquivos() {
     const r = await rodar("quarentena", () => motor.duplicadoParaQuarentena(pastas, caminho, false));
     if (r) { setMsg(`${r.movidos.length} cópias foram para a quarentena do Vindex (você pode recuperá-las).`); setUltimo(r.movidos); setGrupos((l) => (l ?? []).filter((x) => x.sha256 !== g.sha256)); }
   };
+  // abriu a tela com pastas escolhidas: já mostra o que dá para organizar (nada é movido sem apertar “Aplicar”)
+  useEffect(() => { if (pastas.length) void previaDeCategorias(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   const total = (grupos ?? []).reduce((s, g) => s + g.desperdicio, 0);
 
   return (

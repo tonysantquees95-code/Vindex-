@@ -46,7 +46,7 @@ export function Otimizar() {
       }
       if (memoria) {
         const m = await motor.otimizarMemoria();
-        partes.push(m.nota || (m.suportado ? "Memória otimizada." : ""));
+        partes.push(`${m.nota || (m.suportado ? "Memória otimizada." : "")}${m.suportado && m.liberado_bytes > 0 ? ` Voltaram ${bytes(m.liberado_bytes)} de RAM.` : ""}`);
       }
       setResultado(partes.filter(Boolean).join(" ") || "Nada foi marcado.");
       await analisar();
@@ -70,10 +70,10 @@ export function Otimizar() {
         )}
         <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-xl border border-borda p-3 hover:bg-white/5">
           <input type="checkbox" className="size-5" checked={memoria} onChange={(e) => setMemoria(e.target.checked)} />
-          <span className="min-w-0 flex-1"><span className="block text-sm">Liberar memória RAM</span><span className="block text-xs text-suave">Pede aos programas abertos que devolvam memória que não estão usando.</span></span>
+          <span className="min-w-0 flex-1"><span className="block text-sm">Liberar memória RAM</span><span className="block text-xs text-suave">{motor.plataforma === "android" ? "Pede ao Android para encerrar os apps que estão parados em segundo plano (não mexe no app aberto nem no sistema)." : "Pede aos programas abertos que devolvam memória que não estão usando."}</span></span>
         </label>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Botao variante="primario" className="brilho !min-h-12 px-6" disabled={ocupado || (!marcados.size && !memoria)} onClick={otimizar}>{ocupado ? "Otimizando…" : "⚡ Otimizar selecionados"}</Botao>
+          <Botao variante="primario" className="brilho !min-h-12 px-6" disabled={ocupado || (!marcados.size && !memoria)} onClick={otimizar}>{ocupado ? "Otimizando…" : "Otimizar selecionados"}</Botao>
           <span className="text-sm text-suave">{marcados.size ? `Vão voltar cerca de ${bytes(total)}.` : "Marque pelo menos um item."}</span>
           <Botao className="ml-auto !min-h-9 !px-3 text-xs" disabled={ocupado} onClick={() => void analisar()}>Analisar de novo</Botao>
         </div>

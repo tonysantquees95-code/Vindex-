@@ -61,6 +61,23 @@ public final class MotorTeste {
         JSONObject l = Motor.limparPastas(java.util.Collections.singletonList(cache), 24, System.currentTimeMillis(), false);
         confere(l.getLong("apagados") == 1 && !velho.exists() && new File(cache, "x.tmp").exists(), "limpa só o cache antigo");
 
+        long[] m = Motor.lerMeminfo("MemTotal:        7745124 kB\nMemFree:  100 kB\nMemAvailable:    3000000 kB\nSwapTotal:       8388604 kB\nSwapFree:        6000000 kB\n");
+        confere(m[0] == 7745124L * 1024 && m[1] == 3000000L * 1024 && m[2] == 8388604L * 1024 && m[3] == 6000000L * 1024, "lê RAM física e virtual do meminfo");
+        confere(Motor.lerMeminfo("lixo")[0] == -1, "meminfo ilegível devolve -1");
+        confere(Motor.diasDoPatch("2025-01-01", java.sql.Timestamp.valueOf("2025-01-11 12:00:00").getTime()) == 10, "dias do patch de segurança");
+        confere(Motor.diasDoPatch("???", 0) == -1, "patch ilegível");
+        confere("alto".equals(Motor.suspeito("fatura.pdf.exe", 10)[0]), "extensão dupla é perigo");
+        confere("medio".equals(Motor.suspeito("jogo.apk", 10)[0]), "APK fora da loja pede atenção");
+        confere(Motor.suspeito("foto.jpg", 10) == null && Motor.suspeito("musica.mp3", 10) == null, "arquivo normal passa");
+        grava(new File(t, "e/boleto.pdf.scr"), "x");
+        JSONObject v = Motor.verificar(Motor.varrer(java.util.Collections.singletonList(new File(t, "e")), 2));
+        confere(v.getInt("analisados") == 1 && v.getJSONArray("achados").length() == 1, "verificação acha o arquivo suspeito");
+
+        confere(Motor.riscoDoApp(false, false, false, false, false, false, false) == null, "app da loja sem nada estranho passa");
+        confere("baixo".equals(Motor.riscoDoApp(true, false, false, false, false, false, false)[0]), "só fora da loja é baixo");
+        confere("alto".equals(Motor.riscoDoApp(true, true, false, false, false, false, false)[0]), "fora da loja + acessibilidade é alto");
+        confere("medio".equals(Motor.riscoDoApp(false, false, false, false, true, false, false)[0]), "da loja ouvindo notificações é atenção");
+
         System.out.println(falhas == 0 ? "TUDO CERTO" : falhas + " falha(s)");
         System.exit(falhas == 0 ? 0 : 1);
     }
