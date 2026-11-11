@@ -170,6 +170,121 @@ public final class Motor {
         return r;
     }
 
+    // ---------------------------------------------------------------- explorador (gerenciador de arquivos)
+    private static JSONObject itemJson(File f, boolean contar) throws JSONException {
+        boolean pasta = f.isDirectory();
+        String[] filhos = pasta && contar ? f.list() : null;
+        return new JSONObject().put("nome", f.getName()).put("caminho", f.getPath()).put("pasta", pasta)
+                .put("bytes", pasta ? 0 : f.length()).put("modificado", f.lastModified() / 1000)
+                .put("categoria", pasta ? "pasta" : categoriaDaExtensao(extensao(f.getName())))
+                .put("itens", filhos == null ? 0 : filhos.length);
+    }
+
+    public static JSONObject explorarListar(File pasta, boolean ocultos, int limite) throws JSONException {
+        if (!pasta.isDirectory()) throw new JSONException("A pasta não existe.");
+        File[] filhos = pasta.listFiles();
+        if (filhos == null) throw new JSONException("Sem permissão para abrir essa pasta.");
+        List<File> l = new ArrayList<>();
+        for (File f : filhos) {
+            String n = f.getName();
+            if (!ocultos && (oculto(n) || n.equals(QUARENTENA))) continue;
+            l.add(f);
+        }
+        Collections.sort(l, (a, b) -> {
+            boolean pa = a.isDirectory(), pb = b.isDirectory();
+            if (pa != pb) return pa ? -1 : 1;
+            return a.getName().toLowerCase(Locale.ROOT).compareTo(b.getName().toLowerCase(Locale.ROOT));
+        });
+        JSONArray itens = new JSONArray();
+        for (File f : l) {
+            if (itens.length() >= limite) break;
+            itens.put(itemJson(f, true));
+        }
+        File pai = pasta.getParentFile();
+        return new JSONObject().put("caminho", pasta.getPath()).put("pai", pai == null ? JSONObject.NULL : pai.getPath())
+                .put("itens", itens).put("truncado", l.size() > limite);
+    }
+
+    private static JSONArray itensDe(List<Arq> arquivos, String categoria, int limite) throws JSONException {
+        List<Arq> l = new ArrayList<>();
+        for (Arq a : arquivos) {
+            if (categoria == null || a.categoria.equals(categoria) || (categoria.equals("documentos") && (a.categoria.equals("planilhas") || a.categoria.equals("apresentacoes")))) l.add(a);
+        }
+        Collections.sort(l, (x, y) -> Long.compare(y.modificado, x.modificado));
+        JSONArray v = new JSONArray();
+        for (Arq a : l) {
+            if (v.length() >= limite) break;
+            v.put(itemJson(a.caminho, false));
+        }
+        return v;
+    }
+
+    public static JSONArray explorarRecentes(List<File> raizes, int limite) throws JSONException {
+        return itensDe(varrer(raizes, 5), null, Math.max(1, Math.min(500, limite)));
+    }
+
+    public static JSONArray explorarColecao(List<File> raizes, String categoria, int limite) throws JSONException {
+        return itensDe(varrer(raizes, 6), categoria, Math.max(1, Math.min(1000, limite)));
+    }
+
+    public static JSONArray explorarBuscar(File raiz, String texto, int limite) throws JSONException {
+        JSONArray v = new JSONArray();
+        String t = texto == null ? "" : texto.trim().toLowerCase(Locale.ROOT);
+        if (t.isEmpty() || !raiz.isDirectory()) return v;
+        buscarEm(raiz, t, 1, Math.max(1, Math.min(500, limite)), v);
+        return v;
+    }
+
+    private static void buscarEm(File pasta, String t, int nivel, int limite, JSONArray saida) throws JSONException {
+        File[] filhos = pasta.listFiles();
+        if (filhos == null) return;
+        for (File f : filhos) {
+            if (saida.length() >= limite) return;
+            String n = f.getName();
+            if (oculto(n) || n.equals(QUARENTENA) || ehLink(f)) continue;
+            if (n.toLowerCase(Locale.ROOT).contains(t)) saida.put(itemJson(f, false));
+            if (f.isDirectory() && nivel < 6) buscarEm(f, t, nivel + 1, limite, saida);
+        }
+    }
+
+    public static String nomeValido(String nome) throws JSONException {
+        String n = nome == null ? "" : nome.trim();
+        if (n.isEmpty() || n.length() > 200 || n.equals(".") || n.equals("..") || n.matches(".*[/\\\\:*?\"<>|\\x00].*"))
+            throw new JSONException("Nome inválido: não use / \\ : * ? \" < > |");
+        return n;
+    }
+
+    public static String explorarNovaPasta(File dentro, String nome) throws JSONException {
+        String n = nomeValido(nome);
+        if (!dentro.isDirectory()) throw new JSONException("A pasta não existe.");
+        File d = new File(dentro, n);
+        if (d.exists()) throw new JSONException("Já existe algo com esse nome.");
+        if (!d.mkdir()) throw new JSONException("Não consegui criar a pasta.");
+        return d.getPath();
+    }
+
+    public static String explorarRenomear(File f, String nome) throws JSONException {
+        String n = nomeValido(nome);
+        File pai = f.getParentFile();
+        if (pai == null || !f.exists()) throw new JSONException("Não existe mais.");
+        File d = new File(pai, n);
+        if (d.exists()) throw new JSONException("Já existe algo com esse nome.");
+        if (!f.renameTo(d)) throw new JSONException("Não consegui renomear.");
+        return d.getPath();
+    }
+
+    /** Arquivos vão para “Vindex-Quarentena” ao lado (a lixeira do Vindex); dá para desfazer. */
+    public static JSONObject explorarLixeira(JSONArray caminhos) throws JSONException {
+        JSONArray movs = new JSONArray();
+        for (int i = 0; i < caminhos.length(); i++) {
+            File f = new File(caminhos.getString(i));
+            File pai = f.getParentFile();
+            if (!f.isFile() || pai == null) continue;
+            movs.put(mov(f.getPath(), new File(new File(pai, QUARENTENA), f.getName()).getPath(), "lixeira do Vindex"));
+        }
+        return aplicar(movs, false);
+    }
+
     // ---------------------------------------------------------------- movimentos
     public static File nomeLivre(File pasta, String nome) {
         File alvo = new File(pasta, nome);

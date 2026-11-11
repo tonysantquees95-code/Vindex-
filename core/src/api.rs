@@ -1,5 +1,5 @@
 //! Interface única (JSON) usada pelo app de Windows e pelos testes. O Android implementa o mesmo contrato em Kotlin.
-use crate::{arquivos, hardware, limpeza, organizador, regras, seguranca};
+use crate::{arquivos, explorador, hardware, limpeza, organizador, regras, seguranca};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -115,6 +115,14 @@ pub fn executar(comando: &str, args: &Value) -> Result<Value, String> {
             let m: Vec<organizador::Movimento> = serde_json::from_value(args.get("movidos").cloned().unwrap_or(json!([]))).map_err(|e| e.to_string())?;
             para(organizador::desfazer(&m))
         }
+        "explorar_armazenamentos" => para(explorador::armazenamentos()),
+        "explorar_listar" => para(explorador::listar(&caminho_de(args, "caminho")?, bool_de(args, "ocultos", false))?),
+        "explorar_recentes" => para(explorador::recentes(&raizes(args)?, u64_de(args, "limite", 60) as usize)),
+        "explorar_colecao" => para(explorador::colecao(&raizes(args)?, args.get("categoria").and_then(|x| x.as_str()).unwrap_or("outros"), u64_de(args, "limite", 200) as usize)),
+        "explorar_buscar" => para(explorador::buscar(&caminho_de(args, "caminho")?, args.get("texto").and_then(|x| x.as_str()).unwrap_or(""), 200)),
+        "explorar_nova_pasta" => para(explorador::nova_pasta(&caminho_de(args, "caminho")?, args.get("nome").and_then(|x| x.as_str()).unwrap_or(""))?),
+        "explorar_renomear" => para(explorador::renomear(&caminho_de(args, "caminho")?, args.get("nome").and_then(|x| x.as_str()).unwrap_or(""))?),
+        "explorar_lixeira" => para(explorador::para_lixeira(&texto_lista(args, "caminhos").into_iter().map(PathBuf::from).collect::<Vec<_>>())),
         "pastas_conhecidas" => para(arquivos::pastas_conhecidas()),
         "listar_arquivo" => para(arquivos::listar(&caminho_de(args, "origem")?)?),
         "extrair" => {

@@ -3,6 +3,7 @@
 pub mod api;
 pub mod arquivos;
 pub mod categorias;
+pub mod explorador;
 pub mod hardware;
 pub mod limpeza;
 pub mod organizador;

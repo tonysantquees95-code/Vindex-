@@ -292,6 +292,13 @@ public class VindexPlugin extends Plugin {
         return v;
     }
 
+    private void semAcesso() throws JSONException {
+        if (!temAcessoATudo()) {
+            pedirAcessoATudo();
+            throw new JSONException("Libere “Acesso a todos os arquivos” para o Vindex e tente de novo.");
+        }
+    }
+
     private Object executar(String comando, JSONObject a) throws Exception {
         long agora = System.currentTimeMillis();
         int prof = a.optInt("profundidade", 6);
@@ -363,6 +370,42 @@ public class VindexPlugin extends Plugin {
                 }
                 throw new JSONException("Esse arquivo não tem mais cópias.");
             }
+            case "explorar_armazenamentos": {
+                semAcesso();
+                JSONArray v = new JSONArray();
+                File interno = android.os.Environment.getExternalStorageDirectory();
+                v.put(new JSONObject().put("rotulo", "Memória interna").put("caminho", interno.getPath()).put("total", interno.getTotalSpace()).put("livre", interno.getFreeSpace()));
+                File[] fora = getContext().getExternalFilesDirs(null);
+                for (File f : fora == null ? new File[0] : fora) {
+                    if (f == null) continue;
+                    String c = f.getPath();
+                    int k = c.indexOf("/Android/data");
+                    if (k <= 0) continue;
+                    File raiz = new File(c.substring(0, k));
+                    if (raiz.equals(interno) || !raiz.isDirectory()) continue;
+                    v.put(new JSONObject().put("rotulo", "Cartão SD").put("caminho", raiz.getPath()).put("total", raiz.getTotalSpace()).put("livre", raiz.getFreeSpace()));
+                }
+                return v;
+            }
+            case "explorar_listar":
+                semAcesso();
+                return Motor.explorarListar(new File(a.getString("caminho")), a.optBoolean("ocultos", false), 5000);
+            case "explorar_recentes":
+                return Motor.explorarRecentes(raizes(a), a.optInt("limite", 60));
+            case "explorar_colecao":
+                return Motor.explorarColecao(raizes(a), a.optString("categoria", "outros"), a.optInt("limite", 200));
+            case "explorar_buscar":
+                semAcesso();
+                return Motor.explorarBuscar(new File(a.getString("caminho")), a.optString("texto", ""), 200);
+            case "explorar_nova_pasta":
+                semAcesso();
+                return Motor.explorarNovaPasta(new File(a.getString("caminho")), a.optString("nome", ""));
+            case "explorar_renomear":
+                semAcesso();
+                return Motor.explorarRenomear(new File(a.getString("caminho")), a.optString("nome", ""));
+            case "explorar_lixeira":
+                semAcesso();
+                return Motor.explorarLixeira(a.optJSONArray("caminhos") == null ? new JSONArray() : a.getJSONArray("caminhos"));
             case "desfazer":
                 return Motor.desfazer(a.optJSONArray("movidos") == null ? new JSONArray() : a.getJSONArray("movidos"));
             default:

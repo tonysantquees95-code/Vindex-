@@ -7,7 +7,7 @@ export async function motorTauri(): Promise<Motor> {
   const c = <T>(comando: string, args: Record<string, unknown> = {}) => invoke<T>("motor", { comando, args });
   return {
     plataforma: "windows",
-    recursos: { extrair: true, defender: true, inicializacao: true, abrirPasta: true, arquivosSuspeitos: true, verificarApps: false, permissoes: false, atualizaSozinho: false },
+    recursos: { extrair: true, defender: true, inicializacao: true, abrirPasta: true, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: false, permissoes: false, atualizaSozinho: false },
     diagnostico: (processos = 8) => c("diagnostico", { processos }),
     otimizarTudo: (simulacao = false) => c("otimizar_tudo", { simulacao }),
     escolherPasta: async () => {
@@ -34,7 +34,16 @@ export async function motorTauri(): Promise<Motor> {
     pastaSugerida: (origem) => c("pasta_sugerida", { origem }),
     extrair: (origem, destino) => c("extrair", { origem, destino }),
     inicioPeloMenu: () => invoke("argumento_inicial"),
+    armazenamentos: () => c("explorar_armazenamentos"),
+    listarPasta: (caminho, ocultos = false) => c("explorar_listar", { caminho, ocultos }),
+    recentes: (raizes, limite = 60) => c("explorar_recentes", { raizes, limite }),
+    colecao: (raizes, categoria, limite = 200) => c("explorar_colecao", { raizes, categoria, limite }),
+    buscarNome: (caminho, texto) => c("explorar_buscar", { caminho, texto }),
+    novaPasta: (caminho, nome) => c("explorar_nova_pasta", { caminho, nome }),
+    renomear: (caminho, nome) => c("explorar_renomear", { caminho, nome }),
+    paraLixeira: (caminhos) => c("explorar_lixeira", { caminhos }),
     abrirPasta: (caminho) => invoke("abrir_pasta", { caminho }),
+    abrirArquivo: (caminho) => invoke("abrir_arquivo", { caminho }),
     abrirLink: (url) => invoke("abrir_link", { url }),
     estadoProtecao: () => c("seguranca_estado"),
     defenderVarrer: (pasta) => c("defender_varrer", { pasta: pasta ?? "" }),

@@ -47,6 +47,20 @@ fn abrir_pasta(caminho: String) -> Result<(), String> {
     abrir_com_o_sistema(&caminho)
 }
 
+/// Abre um arquivo com o programa padrão. Programas e scripts não abrem por aqui (só pelo próprio sistema).
+#[tauri::command]
+fn abrir_arquivo(caminho: String) -> Result<(), String> {
+    let p = Path::new(&caminho);
+    if !p.is_file() {
+        return Err("O arquivo não existe.".into());
+    }
+    let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    if ["exe", "msi", "bat", "cmd", "com", "scr", "ps1", "vbs", "vbe", "js", "jse", "wsf", "hta", "lnk", "pif", "reg", "jar", "dll", "sh", "appimage"].contains(&ext.as_str()) {
+        return Err("Por segurança o Vindex não executa programas. Abra pelo Explorador do Windows se for confiável.".into());
+    }
+    abrir_com_o_sistema(&caminho)
+}
+
 /// Abre um endereço https no navegador padrão (só https, sem espaços nem aspas).
 #[tauri::command]
 fn abrir_link(url: String) -> Result<(), String> {
@@ -59,7 +73,7 @@ fn abrir_link(url: String) -> Result<(), String> {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![motor, argumento_inicial, abrir_pasta, abrir_link])
+        .invoke_handler(tauri::generate_handler![motor, argumento_inicial, abrir_pasta, abrir_arquivo, abrir_link])
         .run(tauri::generate_context!())
         .expect("não foi possível iniciar o Vindex");
 }

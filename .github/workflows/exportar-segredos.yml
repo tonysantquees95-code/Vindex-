@@ -1,0 +1,40 @@
+name: Enviar segredos para o cofre
+
+# Manual. Pegue o código no Painel Dev (aba Cofre → "Importar do GitHub"), rode este fluxo e cole o código.
+# Manda TODOS os segredos deste repositório para o cofre do servidor (só pelo HTTPS, nada aparece no log).
+# Chaves que já estão no cofre não são sobrescritas, a menos que você marque a opção.
+on:
+  workflow_dispatch:
+    inputs:
+      codigo:
+        description: "Código de importação gerado no Painel Dev (vale 15 minutos, uso único)"
+        required: true
+      sobrescrever:
+        description: "Trocar chaves que já estão no cofre?"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar
+        env:
+          TODOS: ${{ toJSON(secrets) }}
+          CODIGO: ${{ inputs.codigo }}
+          SOBRESCREVER: ${{ inputs.sobrescrever }}
+          ORIGEM: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$TODOS" > /tmp/segredos.json
+          jq -n --arg codigo "$CODIGO" --arg origem "$ORIGEM" --argjson sobrescrever "$SOBRESCREVER" --slurpfile s /tmp/segredos.json \
+            '{codigo:$codigo, origem:$origem, sobrescrever:$sobrescrever, segredos:$s[0]}' > /tmp/corpo.json
+          rm -f /tmp/segredos.json
+          code=$(curl -sS -o /tmp/resposta.json -w '%{http_code}' -X POST "https://venus-servidor.tonysantquees95.workers.dev/dev/cofre/importar" -H 'content-type: application/json' --data-binary @/tmp/corpo.json)
+          rm -f /tmp/corpo.json
+          echo "Resposta do servidor: HTTP $code"
+          jq '{guardados, existentes, pulados, erro: .error}' /tmp/resposta.json
+          test "$code" = "200"

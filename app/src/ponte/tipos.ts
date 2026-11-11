@@ -61,6 +61,10 @@ export interface Recursos {
 }
 export interface Permissao { id: string; rotulo: string; motivo: string; obrigatoria: boolean; concedida: boolean }
 
+export interface Armazenamento { rotulo: string; caminho: string; total: number; livre: number }
+export interface ItemDePasta { nome: string; caminho: string; pasta: boolean; bytes: number; modificado: number; categoria: string; itens: number }
+export interface Listagem { caminho: string; pai: string | null; itens: ItemDePasta[]; truncado: boolean }
+
 export interface Motor {
   plataforma: "windows" | "android" | "demonstracao";
   recursos: Recursos;
@@ -85,6 +89,17 @@ export interface Motor {
   extrair(origem: string, destino: string): Promise<ResultadoExtracao>;
   inicioPeloMenu(): Promise<InicioPeloMenu | null>;
   abrirPasta(caminho: string): Promise<void>;
+  // explorador de arquivos
+  armazenamentos(): Promise<Armazenamento[]>;
+  listarPasta(caminho: string, ocultos?: boolean): Promise<Listagem>;
+  recentes(raizes: string[], limite?: number): Promise<ItemDePasta[]>;
+  colecao(raizes: string[], categoria: string, limite?: number): Promise<ItemDePasta[]>;
+  buscarNome(caminho: string, texto: string): Promise<ItemDePasta[]>;
+  novaPasta(caminho: string, nome: string): Promise<string>;
+  renomear(caminho: string, nome: string): Promise<string>;
+  paraLixeira(caminhos: string[]): Promise<ResultadoDeMovimento>;
+  /** abrir um arquivo com o programa padrão (Windows); no Android ainda não */
+  abrirArquivo(caminho: string): Promise<void>;
   abrirLink(url: string): Promise<void>;
   estadoProtecao(): Promise<EstadoProtecao>;
   defenderVarrer(pasta?: string): Promise<{ resumo: string }>;

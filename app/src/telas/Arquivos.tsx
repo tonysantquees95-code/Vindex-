@@ -3,9 +3,26 @@ import { useMotor, usePastas } from "../estado";
 import { bytes, nomeDoArquivo, pastaDoArquivo } from "../formato";
 import type { Arquivo, GrupoDuplicado, Movimento, ResultadoDeMovimento, ResumoVarredura } from "../ponte";
 import { Aviso, Botao, Cartao } from "../ui";
+import { Explorar } from "./Explorar";
 import { Pastas } from "./Pastas";
 
+/** Arquivos: abre como um gerenciador (Explorar) e guarda as ferramentas de organização em “Organizar”. */
 export function Arquivos() {
+  const [aba, setAba] = useState<"explorar" | "organizar">(() => { try { return sessionStorage.getItem("vindex.arquivos.aba") === "organizar" ? "organizar" : "explorar"; } catch { return "explorar"; } });
+  const trocar = (a: "explorar" | "organizar") => { setAba(a); try { sessionStorage.setItem("vindex.arquivos.aba", a); } catch { /* ok */ } };
+  return (
+    <div className="space-y-4">
+      <div role="tablist" className="flex gap-2">
+        {([["explorar", "Explorar"], ["organizar", "Organizar"]] as const).map(([id, r]) => (
+          <button key={id} role="tab" aria-selected={aba === id} onClick={() => trocar(id)} className={`min-h-10 rounded-xl px-4 text-sm ${aba === id ? "bg-neon/15 text-neon" : "border border-borda text-suave"}`}>{r}</button>
+        ))}
+      </div>
+      {aba === "explorar" ? <Explorar /> : <Organizar />}
+    </div>
+  );
+}
+
+function Organizar() {
   const motor = useMotor();
   const { pastas, adicionar, remover } = usePastas();
   const [ocupado, setOcupado] = useState("");
