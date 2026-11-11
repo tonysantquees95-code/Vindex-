@@ -1,0 +1,58 @@
+name: App (interface, Windows e APK)
+
+# Verifica a interface, gera o instalador do Windows (Tauri) e o APK do Android (Capacitor + plugin Kotlin).
+# Cada versão boa vira uma release "1.N" com VindexSetup.exe e Vindex.apk.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+        working-directory: app
+      - run: npm run test && npm run typecheck && npm run build
+        working-directory: app
+        env:
+          VITE_BUILD: ${{ github.run_number }}
+
+  windows:
+    needs: verificar
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: npm install --no-audit --no-fund
+        working-directory: app
+      - name: Instalar o Tauri e gerar os ícones
+        run: |
+          npm install -g @tauri-apps/cli@2
+          cd desktop/src-tauri
+          tauri icon ../app-icon.png
+      - name: Gerar o instalador
+        working-directory: desktop/src-tauri
+        run: tauri build
+        env:
+          VITE_BUILD: ${{ github.run_number }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vindex-windows
+          path: target/release/bundle/nsis/*.exe
+          if-no-files-found: error

@@ -1,0 +1,18 @@
+@import "tailwindcss";
+@theme {
+  --color-fundo: #070b14;
+  --color-painel: #0e1524;
+  --color-borda: #1c2740;
+  --color-texto: #e6ecf8;
+  --color-suave: #8a97b3;
+  --color-neon: #22d3ee;
+  --color-magenta: #e879f9;
+  --color-ok: #34d399;
+  --color-aviso: #fbbf24;
+  --color-erro: #f87171;
+}
+html, body, #raiz { min-height: 100dvh; }
+body { margin: 0; background: radial-gradient(1200px 600px at 80% -10%, #1b1140 0%, transparent 60%), var(--color-fundo); color: var(--color-texto); font-family: system-ui, "Segoe UI", sans-serif; }
+.num { font-variant-numeric: tabular-nums; }
+.brilho { box-shadow: 0 0 24px -6px var(--color-neon); }
+button { cursor: pointer; }

@@ -138,7 +138,7 @@ mod testes {
         let r = json!({"raizes": [t.path()]});
         let v = executar("varrer", &r).unwrap();
         assert_eq!(v["arquivos"], 3);
-        let d = executar("duplicados", &r).unwrap();
+        let d = executar("duplicados", &json!({"raizes": [t.path()], "min_bytes": 1})).unwrap();
         assert_eq!(d.as_array().unwrap().len(), 1);
         let regra = json!({"id":"1","nome":"Músicas","condicoes":{"categorias":["audios"]},"acao":{"tipo":"mover","destino":"Musicas"}});
         let sim = executar("aplicar_regras", &json!({"raizes":[t.path()],"regras":[regra.clone()],"simulacao":true})).unwrap();
