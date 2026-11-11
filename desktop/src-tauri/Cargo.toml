@@ -1,0 +1,14 @@
+[package]
+name = "vindex-desktop"
+version = "1.0.0"
+edition = "2021"
+description = "Vindex para Windows (Tauri)"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde_json = "1"
+vindex-core = { path = "../../core" }
