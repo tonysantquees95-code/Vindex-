@@ -1,25 +1,38 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { aparelhoLocal, buscarPedidos, guardarSessao, responderPedido, sair, sessaoGuardada, verificar, ErroConta, type Sessao } from "./conta";
 import { useMotor } from "./estado";
 import { executarPedido } from "./ponteVenus";
 import { Arquivos } from "./telas/Arquivos";
 import { Conta } from "./telas/Conta";
+import { Descompactar } from "./telas/Descompactar";
+import { MinhaConta } from "./telas/MinhaConta";
+import { Otimizar } from "./telas/Otimizar";
 import { Painel } from "./telas/Painel";
 import { RegrasTela } from "./telas/Regras";
-import { Aviso, Botao } from "./ui";
+import { Seguranca } from "./telas/Seguranca";
+import type { InicioPeloMenu } from "./ponte";
+import { Aviso } from "./ui";
 
 const ABAS = [
-  { id: "painel", rotulo: "Painel", tela: Painel },
-  { id: "arquivos", rotulo: "Arquivos", tela: Arquivos },
-  { id: "regras", rotulo: "Regras", tela: RegrasTela }
+  { id: "painel", rotulo: "Painel", icone: "📊" },
+  { id: "otimizar", rotulo: "Otimizar", icone: "⚡" },
+  { id: "arquivos", rotulo: "Arquivos", icone: "🗂️" },
+  { id: "regras", rotulo: "Regras", icone: "📐" },
+  { id: "descompactar", rotulo: "Descompactar", icone: "📦" },
+  { id: "seguranca", rotulo: "Segurança", icone: "🛡️" },
+  { id: "conta", rotulo: "Conta", icone: "👤" }
 ] as const;
+type IdAba = (typeof ABAS)[number]["id"];
 
 export function App() {
   const motor = useMotor();
   const demo = motor.plataforma === "demonstracao";
   const aparelho = aparelhoLocal(motor.plataforma);
   const [sessao, setSessao] = useState<Sessao | null>(sessaoGuardada);
-  const [aba, setAba] = useState<(typeof ABAS)[number]["id"]>("painel");
+  const [aba, setAba] = useState<IdAba>("painel");
+  const [inicio, setInicio] = useState<InicioPeloMenu | null>(null);
+  // aberto pelo menu do botão direito ("Extrair com o Vindex…"): vai direto para Descompactar
+  useEffect(() => { void motor.inicioPeloMenu().then((i) => { if (i) { setInicio(i); setAba("descompactar"); } }).catch(() => undefined); }, [motor]);
   const [ultimoPedido, setUltimoPedido] = useState("");
   const ocupado = useRef(false);
 
@@ -33,7 +46,7 @@ export function App() {
   }, []);
 
   // Ponte da Vênus: enquanto o Vindex está aberto e com licença, busca e executa os pedidos de voz.
-  const liberado = !!sessao?.licenca.acesso;
+  const liberado = !!sessao?.licenca.acesso && sessao.licenca.apps?.vindex !== false;
   useEffect(() => {
     if (!sessao || !liberado || demo) return;
     let vivo = true;
@@ -58,20 +71,29 @@ export function App() {
   }, [sessao?.token, liberado, motor]);
 
   if (!demo && !sessao) return <Conta aparelho={aparelho} aoEntrar={definir} />;
-  const Atual = ABAS.find((a) => a.id === aba)!.tela;
+  const ir = (id: string) => setAba(id as IdAba);
+  const telas: Record<IdAba, ReactNode> = {
+    painel: <Painel ir={ir} />,
+    otimizar: <Otimizar />,
+    arquivos: <Arquivos />,
+    regras: <RegrasTela />,
+    descompactar: <Descompactar inicio={inicio} aoUsarInicio={() => setInicio(null)} />,
+    seguranca: <Seguranca />,
+    conta: sessao ? <MinhaConta sessao={sessao} aoAtualizar={definir} aoSair={() => { void sair(sessao.token); definir(null); }} /> : <Aviso>Modo demonstração: entre no app para ver sua conta.</Aviso>
+  };
   return (
     <div className="mx-auto flex min-h-dvh max-w-5xl flex-col px-4 pb-24 pt-4">
       <header className="mb-4 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2"><span className="grid size-9 place-items-center rounded-xl bg-neon/15 text-neon brilho">V</span><div><div className="text-lg font-semibold leading-tight tracking-wide">Vindex</div><div className="text-[11px] text-suave">Manager e Vault</div></div></div>
-        <nav aria-label="Seções" className="hidden gap-1 sm:flex">{ABAS.map((a) => <button key={a.id} onClick={() => setAba(a.id)} aria-current={aba === a.id ? "page" : undefined} className={`min-h-10 rounded-xl px-4 text-sm ${aba === a.id ? "bg-neon/15 text-neon" : "text-suave hover:text-texto"}`}>{a.rotulo}</button>)}</nav>
-        {sessao && <Botao className="!min-h-9 !px-3 text-xs" onClick={() => { void sair(sessao.token); definir(null); }}>Sair</Botao>}
+        <div className="flex items-center gap-2"><img src={`${import.meta.env.BASE_URL}vindex.png`} alt="" width={40} height={40} className="size-10 rounded-xl brilho" /><div><div className="text-lg font-semibold leading-tight tracking-wide">Vindex</div><div className="text-[11px] text-suave">Manager e Vault</div></div></div>
+        <nav aria-label="Seções" className="hidden gap-1 sm:flex">{ABAS.map((a) => <button key={a.id} onClick={() => setAba(a.id)} aria-current={aba === a.id ? "page" : undefined} className={`min-h-10 rounded-xl px-3 text-sm ${aba === a.id ? "bg-neon/15 text-neon" : "text-suave hover:text-texto"}`}>{a.rotulo}</button>)}</nav>
+        {sessao ? <button onClick={() => setAba("conta")} aria-label="Minha conta" className="grid size-10 flex-none place-items-center rounded-full bg-neon/15 text-sm font-semibold text-neon">{(sessao.nome || sessao.email || "V").trim().charAt(0).toUpperCase()}</button> : <span />}
       </header>
       {demo && <div className="mb-3"><Aviso>Modo demonstração: os números são de exemplo. Instale o Vindex no Windows ou no Android para ler o seu aparelho de verdade.</Aviso></div>}
-      {sessao && !liberado && <div className="mb-3"><Aviso tom="erro">A licença do seu Vetorial ID não está ativa. Renove o plano na Vênus para usar o Vindex.</Aviso></div>}
+      {sessao && !liberado && <div className="mb-3"><Aviso tom="erro">A licença do seu Vetorial ID não está ativa. Abra a aba Conta para renovar ou assinar.</Aviso></div>}
       {sessao && liberado && sessao.licenca.renovar && <div className="mb-3"><Aviso>Sua licença está perto de vencer. Renove pela Vênus.</Aviso></div>}
       {ultimoPedido && <div className="mb-3"><Aviso tom="ok">{ultimoPedido}</Aviso></div>}
-      <main className="flex-1">{demo || liberado ? <Atual /> : null}</main>
-      <nav aria-label="Seções" className="fixed inset-x-0 bottom-0 grid grid-cols-3 border-t border-borda bg-fundo/95 backdrop-blur sm:hidden">{ABAS.map((a) => <button key={a.id} onClick={() => setAba(a.id)} aria-current={aba === a.id ? "page" : undefined} className={`min-h-14 text-sm ${aba === a.id ? "text-neon" : "text-suave"}`}>{a.rotulo}</button>)}</nav>
+      <main className="flex-1">{demo || liberado || aba === "conta" ? telas[aba] : null}</main>
+      <nav aria-label="Seções" className="fixed inset-x-0 bottom-0 flex overflow-x-auto border-t border-borda bg-fundo/95 backdrop-blur sm:hidden">{ABAS.map((a) => <button key={a.id} onClick={() => setAba(a.id)} aria-current={aba === a.id ? "page" : undefined} className={`flex min-h-14 min-w-[76px] flex-1 flex-col items-center justify-center text-[11px] ${aba === a.id ? "text-neon" : "text-suave"}`}><span aria-hidden="true" className="text-base">{a.icone}</span>{a.rotulo}</button>)}</nav>
     </div>
   );
 }

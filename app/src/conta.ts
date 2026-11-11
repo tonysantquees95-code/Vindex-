@@ -1,8 +1,9 @@
 // Vetorial ID: login único (o mesmo da Vênus), licença e limite de aparelhos vêm do servidor.
 export const SERVIDOR = "https://venus-servidor.tonysantquees95.workers.dev";
 
-export interface Licenca { acesso: boolean; renovar?: boolean; emTeste?: boolean; diasDeTesteRestantes?: number; diasPagosRestantes?: number; plano?: string }
+export interface Licenca { acesso: boolean; apps?: { vindex?: boolean; vortex?: boolean }; pacote?: string; fimDoTeste?: number; renovar?: boolean; emTeste?: boolean; diasDeTesteRestantes?: number; diasPagosRestantes?: number; plano?: string }
 export interface Sessao { token: string; email: string; nome: string; licenca: Licenca }
+export const SITE_DA_CONTA = `${SERVIDOR}/conta.html`;
 export interface Aparelho { id: string; nome: string; plataforma: string }
 export type ErroDeLimite = { tipo: "sessoes"; itens: { id: string; titulo: string }[] } | { tipo: "aparelhos"; itens: { id: string; titulo: string }[] };
 

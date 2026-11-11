@@ -42,7 +42,7 @@ export function Arquivos() {
       <Cartao titulo="Pastas do Vindex"><Pastas pastas={pastas} adicionar={adicionar} remover={remover} /></Cartao>
       <div className="flex flex-wrap gap-2">
         <Botao variante="primario" disabled={!pastas.length || !!ocupado} onClick={analisar}>{ocupado === "analisar" ? "Analisando…" : "Analisar pastas"}</Botao>
-        <Botao disabled={!pastas.length || !!ocupado} onClick={previaDeCategorias}>Organizar por tipo (prévia)</Botao>
+        <Botao disabled={!pastas.length || !!ocupado} onClick={previaDeCategorias}>Organizar por categoria (prévia)</Botao>
         {ultimo.length > 0 && <Botao variante="perigo" disabled={!!ocupado} onClick={desfazer}>Desfazer última ação</Botao>}
       </div>
       {erro && <Aviso tom="erro">{erro}</Aviso>}

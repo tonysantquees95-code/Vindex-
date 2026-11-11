@@ -56,6 +56,8 @@ pub fn alvos_padrao() -> Vec<Alvo> {
             v.push(alvo("miniaturas", "Cache de miniaturas", l.join("Microsoft/Windows/Explorer"), 72));
             v.push(alvo("despejos", "Relatórios de erro e despejos", l.join("CrashDumps"), 72));
             v.push(alvo("cache_chrome", "Cache do Chrome", l.join("Google/Chrome/User Data/Default/Cache"), 72));
+            v.push(alvo("shaders", "Cache de shaders de jogos (DirectX)", l.join("D3DSCache"), 72));
+            v.push(alvo("relatorios_erro", "Relatórios de erro do Windows", l.join("Microsoft/Windows/WER"), 72));
             v.push(alvo("cache_edge", "Cache do Edge", l.join("Microsoft/Edge/User Data/Default/Cache"), 72));
         }
         if let Some(w) = variavel("WINDIR") {

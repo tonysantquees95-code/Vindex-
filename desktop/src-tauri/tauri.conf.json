@@ -10,13 +10,38 @@
     "frontendDist": "../../app/dist"
   },
   "app": {
-    "windows": [{ "label": "main", "title": "Vindex · Manager e Vault", "width": 1100, "height": 760, "minWidth": 420, "minHeight": 600 }],
-    "security": { "csp": "default-src 'self'; connect-src 'self' https://venus-servidor.tonysantquees95.workers.dev ipc: http://ipc.localhost; img-src 'self' data:; style-src 'self' 'unsafe-inline'" }
+    "windows": [
+      {
+        "label": "main",
+        "title": "Vindex · Manager e Vault",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 420,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' https://venus-servidor.tonysantquees95.workers.dev ipc: http://ipc.localhost; img-src 'self' data:; style-src 'self' 'unsafe-inline'"
+    }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.ico"],
-    "windows": { "nsis": { "installMode": "currentUser", "languages": ["PortugueseBR"] } }
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "PortugueseBR"
+        ],
+        "installerHooks": "./instalador.nsh"
+      }
+    }
   }
 }

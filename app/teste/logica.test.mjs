@@ -26,3 +26,35 @@ test("regras: validação e frase legível", () => {
   r.condicoes.tamanho_min = 10 * 1048576; r.condicoes.tamanho_max = 1048576;
   assert.deepEqual(validar(r), ["O tamanho mínimo é maior que o máximo."]);
 });
+
+import { analisarLink } from "../src/link.ts";
+import { REGRAS_PRONTAS, PACOTES_PRONTOS, adicionarProntas, regraDaPronta } from "../src/regras.ts";
+
+test("protetor web: separa golpe de site normal", () => {
+  assert.equal(analisarLink("https://www.google.com/search?q=oi").veredito, "seguro");
+  assert.equal(analisarLink("https://pineapple.com").veredito, "seguro");
+  assert.equal(analisarLink("https://github.com/x/y").veredito, "seguro");
+  const golpe = analisarLink("http://nubank-login-verificar.top/entrar");
+  assert.equal(golpe.veredito, "perigo");
+  assert.ok(golpe.motivos.some((m) => m.includes("nubank")));
+  assert.equal(analisarLink("https://paypa1.com/login").veredito, "perigo");
+  assert.equal(analisarLink("https://paypa1.com").veredito, "atencao");
+  assert.equal(analisarLink("http://192.168.0.1/x").veredito, "perigo");
+  assert.equal(analisarLink("https://bit.ly/abc").veredito, "atencao");
+  assert.equal(analisarLink("https://xn--pypal-4ve.com").veredito, "atencao");
+  assert.equal(analisarLink("   "), null);
+});
+
+test("regras prontas são válidas e entram sem duplicar", () => {
+  assert.ok(REGRAS_PRONTAS.length >= 10);
+  for (const p of REGRAS_PRONTAS) assert.deepEqual(validar({ ...regraDaPronta(p) }), [], p.chave);
+  const chaves = new Set(REGRAS_PRONTAS.map((p) => p.chave));
+  for (const k of PACOTES_PRONTOS.flatMap((p) => p.chaves)) assert.ok(chaves.has(k), k);
+  const dl = PACOTES_PRONTOS.find((p) => p.chave === "downloads");
+  const a = adicionarProntas([], dl.chaves);
+  assert.equal(a.length, dl.chaves.length);
+  assert.equal(adicionarProntas(a, dl.chaves).length, a.length);
+  const minha = novaRegra("meu"); minha.nome = "x"; minha.condicoes.extensoes = ["txt"]; minha.acao = { tipo: "mover", destino: "T" };
+  const b = adicionarProntas([minha], ["fiscal"]);
+  assert.deepEqual(b.map((r) => r.id), ["meu", "pronta:fiscal"]);
+});

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMotor, usePastas } from "../estado";
 import { nomeDoArquivo, pastaDoArquivo } from "../formato";
 import type { Categoria, Regra, ResultadoDeMovimento } from "../ponte";
-import { CATEGORIAS, carregarRegras, frase, guardarRegras, novaRegra, validar } from "../regras";
+import { CATEGORIAS, PACOTES_PRONTOS, REGRAS_PRONTAS, adicionarProntas, carregarRegras, frase, guardarRegras, novaRegra, validar } from "../regras";
 import { Aviso, Botao, Cartao } from "../ui";
 import { Pastas } from "./Pastas";
 
@@ -44,8 +44,21 @@ export function RegrasTela() {
     <div className="space-y-4">
       <Cartao titulo="Pastas onde as regras valem"><Pastas pastas={pastas} adicionar={adicionar} remover={remover} /></Cartao>
 
+      <Cartao titulo="Regras prontas">
+        <p className="mb-3 text-sm text-suave">Escolha um pacote e pronto: as regras entram na sua lista e você pode editar, desligar ou apagar depois.</p>
+        <div className="grid gap-2 sm:grid-cols-2">{PACOTES_PRONTOS.map((p) => (
+          <div key={p.chave} className="rounded-xl border border-neon/30 bg-neon/5 p-3"><div className="text-sm font-medium">{p.titulo}</div><p className="mt-1 text-xs text-suave">{p.descricao}</p>
+            <Botao variante="primario" className="mt-2 !min-h-9 !px-3 text-xs" onClick={() => { salvar(adicionarProntas(regras, p.chaves)); setMsg(`Pacote “${p.titulo}” adicionado. Veja a prévia antes de aplicar.`); }}>Adicionar pacote</Botao></div>
+        ))}</div>
+        <details className="mt-3"><summary className="cursor-pointer text-sm text-suave">Ou escolher regras uma a uma ({REGRAS_PRONTAS.length})</summary>
+          <ul className="mt-2 space-y-2">{REGRAS_PRONTAS.map((p) => (
+            <li key={p.chave} className="flex items-center justify-between gap-2 rounded-xl border border-borda p-3"><div className="min-w-0"><div className="text-sm">{p.titulo}</div><div className="text-xs text-suave">{p.descricao}</div></div>
+              <Botao className="!min-h-9 flex-none !px-3 text-xs" onClick={() => { salvar(adicionarProntas(regras, [p.chave])); setMsg(`Regra “${p.titulo}” adicionada.`); }}>Adicionar</Botao></li>
+          ))}</ul></details>
+      </Cartao>
+
       <Cartao titulo="Suas regras" acao={<Botao variante="primario" onClick={() => { setErros([]); setEdit(novaRegra(`r${Date.now()}`)); }}>Nova regra</Botao>}>
-        {regras.length === 0 ? <p className="text-sm text-suave">Nenhuma regra ainda. Ex.: “PDFs com ‘nota’ no nome → pasta Fiscal”.</p> : (
+        {regras.length === 0 ? <p className="text-sm text-suave">Nenhuma regra ainda. Use uma regra pronta acima ou crie a sua. Ex.: “PDFs com ‘nota’ no nome → pasta Fiscal”.</p> : (
           <ul className="space-y-2">{regras.map((r, i) => (
             <li key={r.id} className="rounded-xl border border-borda p-3">
               <div className="flex items-center justify-between gap-2"><div className="min-w-0"><div className="truncate text-sm font-medium">{i + 1}. {r.nome}</div><div className="text-xs text-suave">{frase(r)}</div></div>

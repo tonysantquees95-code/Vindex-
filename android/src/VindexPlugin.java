@@ -120,6 +120,35 @@ public class VindexPlugin extends Plugin {
                 return diagnostico();
             case "otimizar_tudo":
                 return otimizarTudo(a.optBoolean("simulacao", false));
+            case "alvos_limpeza": {
+                JSONArray lista = new JSONArray();
+                for (String[] t : alvosDeLimpeza()) lista.put(new JSONObject().put("id", t[0]).put("rotulo", t[1]).put("pasta", t[2]));
+                return lista;
+            }
+            case "planejar_limpeza":
+            case "executar_limpeza": {
+                boolean exec = "executar_limpeza".equals(comando);
+                boolean sim = !exec || a.optBoolean("simulacao", false);
+                JSONArray ids = a.optJSONArray("alvos");
+                long apagados = 0, total = 0;
+                JSONArray porAlvo = new JSONArray(), falhas = new JSONArray();
+                for (String[] t : alvosDeLimpeza()) {
+                    if (ids != null && ids.length() > 0 && !contemId(ids, t[0])) continue;
+                    List<File> pastas = new ArrayList<>();
+                    pastas.add(new File(t[2]));
+                    JSONObject r = Motor.limparPastas(pastas, 1, agora, sim);
+                    apagados += r.getLong("apagados");
+                    total += r.getLong("liberado_bytes");
+                    porAlvo.put(new JSONArray().put(t[0]).put(r.getLong("liberado_bytes")));
+                    JSONArray f = r.getJSONArray("falhas");
+                    for (int i = 0; i < f.length(); i++) falhas.put(f.getString(i));
+                }
+                if (!exec) return new JSONObject().put("total_bytes", total).put("arquivos", apagados).put("por_alvo", porAlvo);
+                return new JSONObject().put("apagados", apagados).put("liberado_bytes", total).put("falhas", falhas).put("simulacao", sim);
+            }
+            case "otimizar_memoria":
+                return new JSONObject().put("suportado", false).put("processos_ajustados", 0).put("liberado_bytes", 0)
+                        .put("nota", "No Android o sistema gerencia a memória sozinho.");
             case "varrer":
                 return Motor.resumo(Motor.varrer(raizes(a), prof));
             case "duplicados":
@@ -236,6 +265,20 @@ public class VindexPlugin extends Plugin {
                 .put("bateria", bateria == null ? JSONObject.NULL : bateria)
                 .put("discos", new JSONArray().put(disco))
                 .put("processos", new JSONArray().put(eu));
+    }
+
+    private List<String[]> alvosDeLimpeza() {
+        Context c = getContext();
+        List<String[]> v = new ArrayList<>();
+        v.add(new String[]{"cache_app", "Cache do próprio Vindex", c.getCacheDir().getPath()});
+        File ext = c.getExternalCacheDir();
+        if (ext != null) v.add(new String[]{"cache_ext", "Cache externo do Vindex", ext.getPath()});
+        return v;
+    }
+
+    private static boolean contemId(JSONArray ids, String id) {
+        for (int i = 0; i < ids.length(); i++) if (id.equals(ids.optString(i))) return true;
+        return false;
     }
 
     /** O Android não deixa um app limpar outros apps: o Vindex limpa o próprio cache e mostra isso com clareza. */

@@ -1,5 +1,5 @@
 //! Interface única (JSON) usada pelo app de Windows e pelos testes. O Android implementa o mesmo contrato em Kotlin.
-use crate::{hardware, limpeza, organizador, regras};
+use crate::{arquivos, hardware, limpeza, organizador, regras, seguranca};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -19,6 +19,9 @@ fn raizes(v: &Value) -> Result<Vec<PathBuf>, String> {
         return Err(format!("Escolha uma pasta, não a raiz do disco: {}", p.display()));
     }
     Ok(r)
+}
+fn caminho_de(v: &Value, campo: &str) -> Result<PathBuf, String> {
+    v.get(campo).and_then(|x| x.as_str()).filter(|p| !p.trim().is_empty()).map(PathBuf::from).ok_or_else(|| "Escolha o arquivo.".to_string())
 }
 fn u64_de(v: &Value, campo: &str, padrao: u64) -> u64 {
     v.get(campo).and_then(|x| x.as_u64()).unwrap_or(padrao)
@@ -112,6 +115,22 @@ pub fn executar(comando: &str, args: &Value) -> Result<Value, String> {
             let m: Vec<organizador::Movimento> = serde_json::from_value(args.get("movidos").cloned().unwrap_or(json!([]))).map_err(|e| e.to_string())?;
             para(organizador::desfazer(&m))
         }
+        "pastas_conhecidas" => para(arquivos::pastas_conhecidas()),
+        "listar_arquivo" => para(arquivos::listar(&caminho_de(args, "origem")?)?),
+        "extrair" => {
+            let origem = caminho_de(args, "origem")?;
+            let destino = args.get("destino").and_then(|x| x.as_str()).filter(|d| !d.trim().is_empty()).map(PathBuf::from).unwrap_or_else(|| arquivos::pasta_sugerida(&origem));
+            para(arquivos::extrair(&origem, &destino)?)
+        }
+        "pasta_sugerida" => para(arquivos::pasta_sugerida(&caminho_de(args, "origem")?)),
+        "seguranca_estado" => para(seguranca::estado_protecao()),
+        "defender_varrer" => {
+            let pasta = args.get("pasta").and_then(|x| x.as_str()).filter(|p| !p.trim().is_empty()).map(PathBuf::from);
+            Ok(json!({"resumo": seguranca::defender_varrer(pasta.as_deref())?}))
+        }
+        "verificar_arquivos" => para(seguranca::verificar_arquivos(&raizes(args)?, u64_de(args, "profundidade", 4) as usize)),
+        "programas_iniciais" => para(seguranca::programas_iniciais()),
+        "verificar_hosts" => para(seguranca::verificar_hosts()),
         outro => Err(format!("Comando desconhecido: {outro}")),
     }
 }
@@ -149,6 +168,28 @@ mod testes {
         let volta = executar("desfazer", &json!({"movidos": real["movidos"]})).unwrap();
         assert!(volta["falhas"].as_array().unwrap().is_empty());
         assert!(t.path().join("c.mp3").exists());
+    }
+
+    #[test]
+    fn extrai_e_verifica_pela_api() {
+        let t = tempfile::tempdir().unwrap();
+        let z = t.path().join("p.zip");
+        {
+            use std::io::Write;
+            let mut w = zip::ZipWriter::new(fs::File::create(&z).unwrap());
+            w.start_file("a.txt", zip::write::SimpleFileOptions::default()).unwrap();
+            w.write_all(b"oi").unwrap();
+            w.finish().unwrap();
+        }
+        let l = executar("listar_arquivo", &json!({"origem": z})).unwrap();
+        assert_eq!(l["itens"], 1);
+        let r = executar("extrair", &json!({"origem": z})).unwrap();
+        assert_eq!(r["arquivos"], 1);
+        assert!(t.path().join("p/a.txt").exists());
+        assert!(executar("extrair", &json!({})).unwrap_err().contains("arquivo"));
+        let v = executar("verificar_arquivos", &json!({"raizes": [t.path()]})).unwrap();
+        assert!(v["analisados"].as_u64().unwrap() >= 2);
+        assert!(executar("pastas_conhecidas", &json!({})).unwrap().is_array());
     }
 
     #[test]

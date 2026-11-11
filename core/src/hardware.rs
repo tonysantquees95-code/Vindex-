@@ -1,7 +1,7 @@
 //! VindexEngineCore: leitura de hardware em tempo real.
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use sysinfo::{Components, Disks, ProcessesToUpdate, System};
+use sysinfo::{Components, Disks, Networks, ProcessesToUpdate, System};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Memoria {
@@ -45,6 +45,14 @@ pub struct Processo {
     pub memoria: u64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct Rede {
+    /// total recebido/enviado desde que o sistema ligou, somando as interfaces
+    pub recebido: u64,
+    pub enviado: u64,
+    pub interfaces: usize,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Diagnostico {
     pub sistema: String,
@@ -59,6 +67,15 @@ pub struct Diagnostico {
     pub bateria: Option<Bateria>,
     pub discos: Vec<Armazenamento>,
     pub processos: Vec<Processo>,
+    /// memória virtual (arquivo de paginação): total e usada
+    #[serde(default)]
+    pub swap_total: u64,
+    #[serde(default)]
+    pub swap_usado: u64,
+    #[serde(default)]
+    pub processos_total: usize,
+    #[serde(default)]
+    pub rede: Rede,
 }
 
 pub fn saude_do_disco(percentual_usado: f32) -> &'static str {
@@ -139,7 +156,10 @@ pub fn diagnosticar(limite_processos: usize) -> Diagnostico {
         let pb = b.cpu as f64 * 1_000_000_000.0 + b.memoria as f64;
         pb.partial_cmp(&pa).unwrap_or(std::cmp::Ordering::Equal)
     });
+    let processos_total = processos.len();
     processos.truncate(limite_processos);
+    let redes = Networks::new_with_refreshed_list();
+    let rede = Rede { recebido: redes.iter().map(|(_, d)| d.total_received()).sum(), enviado: redes.iter().map(|(_, d)| d.total_transmitted()).sum(), interfaces: redes.iter().count() };
 
     Diagnostico {
         sistema: format!("{} {}", System::name().unwrap_or_default(), System::os_version().unwrap_or_default()).trim().to_string(),
@@ -154,6 +174,10 @@ pub fn diagnosticar(limite_processos: usize) -> Diagnostico {
         bateria: ler_bateria(),
         discos,
         processos,
+        swap_total: sys.total_swap(),
+        swap_usado: sys.used_swap(),
+        processos_total,
+        rede,
     }
 }
 

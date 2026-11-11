@@ -27,7 +27,7 @@ export function Conta({ aparelho, aoEntrar }: { aparelho: Aparelho; aoEntrar: (s
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-4 px-4 py-8">
-      <div className="text-center"><span className="mx-auto grid size-14 place-items-center rounded-2xl bg-neon/15 text-2xl text-neon brilho">V</span><h1 className="mt-3 text-2xl font-semibold">Vindex</h1><p className="text-xs uppercase tracking-[0.2em] text-neon">Manager e Vault</p><p className="text-sm text-suave">Entre com o seu Vetorial ID, o mesmo da Vênus.</p></div>
+      <div className="text-center"><img src={`${import.meta.env.BASE_URL}vindex.png`} alt="" width={72} height={72} className="mx-auto size-[72px] rounded-2xl brilho" /><h1 className="mt-3 text-2xl font-semibold">Vindex</h1><p className="text-xs uppercase tracking-[0.2em] text-neon">Manager e Vault</p><p className="text-sm text-suave">Entre com o seu Vetorial ID, o mesmo da Vênus.</p></div>
       {limite ? (
         <Cartao titulo={limite.tipo === "sessoes" ? "Limite de aparelhos ao mesmo tempo" : "Limite de aparelhos vinculados"}>
           <p className="mb-3 text-sm text-suave">{limite.tipo === "sessoes" ? "Encerre uma sessão para entrar neste aparelho." : "Remova um aparelho para vincular este."}</p>

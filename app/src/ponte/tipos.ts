@@ -6,6 +6,9 @@ export interface Diagnostico {
   bateria: { nivel: number; estado: string; saude: number } | null;
   discos: { nome: string; ponto: string; tipo: string; sistema: string; total: number; livre: number; percentual_usado: number; saude: string }[];
   processos: { pid: number; nome: string; cpu: number; memoria: number }[];
+  // campos novos (o Android antigo pode não mandar)
+  swap_total?: number; swap_usado?: number; processos_total?: number;
+  rede?: { recebido: number; enviado: number; interfaces: number };
 }
 export interface GrupoDuplicado { sha256: string; bytes: number; caminhos: string[]; desperdicio: number }
 export interface Movimento { de: string; para: string; motivo: string }
@@ -26,8 +29,26 @@ export interface Regra {
   acao: Acao;
 }
 
+export interface PastaConhecida { id: string; rotulo: string; caminho: string }
+export interface ConteudoCompactado { itens: number; bytes: number; nomes: string[]; formato: string }
+export interface ResultadoExtracao { destino: string; arquivos: number; bytes: number; pulados: string[] }
+export interface EstadoProtecao {
+  suportado: boolean; antivirus_ligado: boolean | null; tempo_real_ligado: boolean | null; assinaturas_dias: number | null;
+  firewall: [string, boolean][]; nota: string;
+}
+export interface Achado { caminho: string; nivel: "alto" | "medio" | "baixo"; motivo: string }
+export interface ResultadoVerificacao { analisados: number; achados: Achado[] }
+export interface ProgramaInicial { nome: string; comando: string; origem: string }
+export interface AlvoDeLimpeza { id: string; rotulo: string; pasta: string }
+export interface PlanoDeLimpeza { total_bytes: number; arquivos: number; por_alvo: [string, number][] }
+export interface InicioPeloMenu { modo: "escolher" | "aqui"; arquivo: string }
+
+/** O que cada plataforma sabe fazer; a interface esconde o que não existe. */
+export interface Recursos { extrair: boolean; defender: boolean; inicializacao: boolean; abrirPasta: boolean }
+
 export interface Motor {
   plataforma: "windows" | "android" | "demonstracao";
+  recursos: Recursos;
   diagnostico(processos?: number): Promise<Diagnostico>;
   otimizarTudo(simulacao?: boolean): Promise<ResultadoOtimizacao>;
   escolherPasta(): Promise<string | null>;
@@ -38,4 +59,21 @@ export interface Motor {
   aplicarRegras(raizes: string[], regras: Regra[], simulacao: boolean): Promise<ResultadoDeMovimento>;
   duplicadoParaQuarentena(raizes: string[], manter: string, simulacao: boolean): Promise<ResultadoDeMovimento>;
   desfazer(movidos: Movimento[]): Promise<ResultadoDeMovimento>;
+  alvosDeLimpeza(): Promise<AlvoDeLimpeza[]>;
+  planejarLimpeza(alvos: string[]): Promise<PlanoDeLimpeza>;
+  executarLimpeza(alvos: string[], simulacao?: boolean): Promise<{ apagados: number; liberado_bytes: number; falhas: string[]; simulacao: boolean }>;
+  otimizarMemoria(): Promise<{ suportado: boolean; processos_ajustados: number; liberado_bytes: number; nota: string }>;
+  pastasConhecidas(): Promise<PastaConhecida[]>;
+  escolherArquivo(): Promise<string | null>;
+  listarCompactado(origem: string): Promise<ConteudoCompactado>;
+  pastaSugerida(origem: string): Promise<string>;
+  extrair(origem: string, destino: string): Promise<ResultadoExtracao>;
+  inicioPeloMenu(): Promise<InicioPeloMenu | null>;
+  abrirPasta(caminho: string): Promise<void>;
+  abrirLink(url: string): Promise<void>;
+  estadoProtecao(): Promise<EstadoProtecao>;
+  defenderVarrer(pasta?: string): Promise<{ resumo: string }>;
+  verificarArquivos(raizes: string[]): Promise<ResultadoVerificacao>;
+  programasIniciais(): Promise<ProgramaInicial[]>;
+  verificarHosts(): Promise<string[]>;
 }
