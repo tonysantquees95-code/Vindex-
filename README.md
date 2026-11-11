@@ -1,4 +1,4 @@
-# Vindex · Vetorial Tech
+# Vindex · Manend e Vault (Vetorial Tech)
 
 Otimizador de hardware e organizador de arquivos do ecossistema Vetorial Tech.
 

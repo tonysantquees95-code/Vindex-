@@ -62,7 +62,7 @@ export function App() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-5xl flex-col px-4 pb-24 pt-4">
       <header className="mb-4 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2"><span className="grid size-9 place-items-center rounded-xl bg-neon/15 text-neon brilho">V</span><div><div className="text-lg font-semibold leading-tight tracking-wide">Vindex</div><div className="text-[11px] text-suave">{sessao ? sessao.email : "Vetorial Tech"}</div></div></div>
+        <div className="flex items-center gap-2"><span className="grid size-9 place-items-center rounded-xl bg-neon/15 text-neon brilho">V</span><div><div className="text-lg font-semibold leading-tight tracking-wide">Vindex</div><div className="text-[11px] text-suave">Manend e Vault</div></div></div>
         <nav aria-label="Seções" className="hidden gap-1 sm:flex">{ABAS.map((a) => <button key={a.id} onClick={() => setAba(a.id)} aria-current={aba === a.id ? "page" : undefined} className={`min-h-10 rounded-xl px-4 text-sm ${aba === a.id ? "bg-neon/15 text-neon" : "text-suave hover:text-texto"}`}>{a.rotulo}</button>)}</nav>
         {sessao && <Botao className="!min-h-9 !px-3 text-xs" onClick={() => { void sair(sessao.token); definir(null); }}>Sair</Botao>}
       </header>
