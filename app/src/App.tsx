@@ -59,7 +59,7 @@ export function App() {
   const atualizar = useCallback(async (v: InfoVersao) => {
     setAvisoAtualizacao("");
     try {
-      if (motor.recursos.atualizaSozinho) { await motor.instalarAtualizacao(v.url, v.sha256); setAvisoAtualizacao("Baixei a versão nova: confirme a instalação na tela do Android."); }
+      if (motor.recursos.atualizaSozinho) { await motor.instalarAtualizacao(v.url, v.sha256); setAvisoAtualizacao(motor.plataforma === "android" ? "Baixei a versão nova: confirme a instalação na tela do Android." : "Baixando a versão nova: o Vindex vai fechar, atualizar e abrir de novo sozinho."); }
       else await motor.abrirLink(`${SERVIDOR}/atualizacao?app=vindex-windows&baixar=1`);
     } catch (e) { setAvisoAtualizacao(e instanceof Error ? e.message : typeof e === "string" ? e : "Não consegui atualizar agora."); }
   }, [motor]);
@@ -77,7 +77,7 @@ export function App() {
         try { localStorage.setItem("vindex.atualizacao.ultima", String(Date.now())); } catch { /* ok */ }
         if (!vivo || !v || !haNovaVersao(BUILD, v.numero)) return;
         setNova(v);
-        if (ajustes.autoAtualizar && motor.recursos.atualizaSozinho && instalarLiberado && tentouAtualizar.current !== v.numero) {
+        if (ajustes.autoAtualizar && motor.recursos.atualizaSozinho && (motor.plataforma !== "android" || instalarLiberado) && tentouAtualizar.current !== v.numero) {
           tentouAtualizar.current = v.numero;
           void atualizar(v);
         }

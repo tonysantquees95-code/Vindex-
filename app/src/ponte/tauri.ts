@@ -7,7 +7,7 @@ export async function motorTauri(): Promise<Motor> {
   const c = <T>(comando: string, args: Record<string, unknown> = {}) => invoke<T>("motor", { comando, args });
   return {
     plataforma: "windows",
-    recursos: { extrair: true, defender: true, inicializacao: true, abrirPasta: true, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: false, permissoes: false, atualizaSozinho: false },
+    recursos: { extrair: true, defender: true, inicializacao: true, abrirPasta: true, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: false, permissoes: false, atualizaSozinho: true },
     diagnostico: (processos = 8) => c("diagnostico", { processos }),
     otimizarTudo: (simulacao = false) => c("otimizar_tudo", { simulacao }),
     escolherPasta: async () => {
@@ -54,6 +54,6 @@ export async function motorTauri(): Promise<Motor> {
     pedirPermissao: async () => undefined,
     abrirConfiguracao: async () => undefined,
     verificarApps: async () => ({ analisados: 0, achados: [] }),
-    instalarAtualizacao: async () => { throw new Error("No Windows a atualização é baixada pelo navegador."); }
+    instalarAtualizacao: (url, sha256) => invoke("instalar_atualizacao", { url, sha256 })
   };
 }
