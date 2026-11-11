@@ -1,5 +1,6 @@
 name: App (interface, Windows e APK)
 
+# Tudo roda em máquina Windows do GitHub (as máquinas Linux estavam sem vaga). O Linux fica em workflow separado, para depois.
 # Verifica a interface, gera o instalador do Windows (Tauri) e o APK do Android (Capacitor + plugin Kotlin).
 # Cada versão boa vira uma release "1.N" com VindexSetup.exe e Vindex.apk.
 on:
@@ -16,7 +17,10 @@ concurrency:
 
 jobs:
   verificar:
-    runs-on: ubuntu-24.04
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,6 +36,9 @@ jobs:
   windows:
     needs: verificar
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -59,7 +66,10 @@ jobs:
 
   android:
     needs: verificar
-    runs-on: ubuntu-24.04
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -77,7 +87,7 @@ jobs:
           curl -fsSL -o json.jar https://repo1.maven.org/maven2/org/json/json/20240303/json-20240303.jar
           mkdir -p saida
           javac -cp json.jar -d saida android/src/Motor.java android/teste/MotorTeste.java
-          java -cp json.jar:saida tech.vetorial.vindex.MotorTeste
+          java -cp "json.jar;saida" tech.vetorial.vindex.MotorTeste
       - name: Preparar o projeto Android
         working-directory: app
         run: |
@@ -107,7 +117,10 @@ jobs:
 
   publicar:
     needs: [windows, android]
-    runs-on: ubuntu-24.04
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     permissions:
       contents: write
     steps:

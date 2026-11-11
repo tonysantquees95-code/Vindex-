@@ -1,0 +1,15 @@
+name: Núcleo no Linux (manual)
+
+# Os mesmos testes do núcleo, só no Linux. Roda à mão (Actions → Run workflow), quando as máquinas Linux do GitHub estiverem livres.
+on:
+  workflow_dispatch:
+
+jobs:
+  testes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test -p vindex-core --all-targets
