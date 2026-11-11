@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "identifier": "tech.vetorial.vindex",
   "build": {
-    "beforeBuildCommand": "npm run build --prefix ../../app",
-    "beforeDevCommand": "npm run dev --prefix ../../app",
+    "beforeBuildCommand": "cd ../../app && npm run build",
+    "beforeDevCommand": "cd ../../app && npm run dev",
     "devUrl": "http://localhost:5177",
     "frontendDist": "../../app/dist"
   },
