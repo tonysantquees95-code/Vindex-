@@ -89,7 +89,7 @@ export function App() {
         {sessao ? <button onClick={() => setAba("conta")} aria-label="Minha conta" className="grid size-10 flex-none place-items-center rounded-full bg-neon/15 text-sm font-semibold text-neon">{(sessao.nome || sessao.email || "V").trim().charAt(0).toUpperCase()}</button> : <span />}
       </header>
       {demo && <div className="mb-3"><Aviso>Modo demonstração: os números são de exemplo. Instale o Vindex no Windows ou no Android para ler o seu aparelho de verdade.</Aviso></div>}
-      {sessao && !liberado && <div className="mb-3"><Aviso tom="erro">A licença do seu Vetorial ID não está ativa. Abra a aba Conta para renovar ou assinar.</Aviso></div>}
+      {sessao && !liberado && <div className="mb-3"><Aviso tom="erro">{sessao.licenca.acesso ? "O seu plano não inclui o Vindex. Na aba Conta você escolhe o pacote Vênus + Vindex (R$ 70) ou o Completo (R$ 100)." : "A licença do seu Vetorial ID não está ativa. Abra a aba Conta para renovar ou assinar."}</Aviso></div>}
       {sessao && liberado && sessao.licenca.renovar && <div className="mb-3"><Aviso>Sua licença está perto de vencer. Renove pela Vênus.</Aviso></div>}
       {ultimoPedido && <div className="mb-3"><Aviso tom="ok">{ultimoPedido}</Aviso></div>}
       <main className="flex-1">{demo || liberado || aba === "conta" ? telas[aba] : null}</main>
