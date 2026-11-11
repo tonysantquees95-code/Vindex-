@@ -50,6 +50,8 @@ export interface InicioPeloMenu { modo: "escolher" | "aqui"; arquivo: string }
 /** O que cada plataforma sabe fazer; a interface esconde o que não existe. */
 export interface Recursos {
   extrair: boolean; defender: boolean; inicializacao: boolean; abrirPasta: boolean;
+  /** abre arquivos com o programa padrão */
+  abrirArquivos: boolean;
   /** verificar arquivos suspeitos nas pastas (Windows e Android) */
   arquivosSuspeitos: boolean;
   /** verificar os apps instalados (Android) */
