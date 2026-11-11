@@ -273,13 +273,13 @@ public final class Motor {
         return d.getPath();
     }
 
-    /** Arquivos vão para “Vindex-Quarentena” ao lado (a lixeira do Vindex); dá para desfazer. */
+    /** Arquivos e pastas vão para “Vindex-Quarentena” ao lado (a lixeira do Vindex); dá para desfazer. */
     public static JSONObject explorarLixeira(JSONArray caminhos) throws JSONException {
         JSONArray movs = new JSONArray();
         for (int i = 0; i < caminhos.length(); i++) {
             File f = new File(caminhos.getString(i));
             File pai = f.getParentFile();
-            if (!f.isFile() || pai == null) continue;
+            if ((!f.isFile() && !f.isDirectory()) || pai == null || f.getName().equals(QUARENTENA)) continue;
             movs.put(mov(f.getPath(), new File(new File(pai, QUARENTENA), f.getName()).getPath(), "lixeira do Vindex"));
         }
         return aplicar(movs, false);
@@ -323,7 +323,8 @@ public final class Motor {
             File para = new File(m.getString("para"));
             File pasta = para.getParentFile();
             if (pasta == null) { falhas.put(de.getPath() + ": destino inválido"); continue; }
-            if (!de.isFile()) { falhas.put(de.getPath() + ": não existe mais"); continue; }
+            if (!de.exists()) { falhas.put(de.getPath() + ": não existe mais"); continue; }
+            if (de.isDirectory() && pasta.getPath().startsWith(de.getPath() + File.separator)) { falhas.put(de.getPath() + ": não dá para mover uma pasta para dentro dela mesma"); continue; }
             File final_ = nomeLivre(pasta, para.getName());
             if (simulacao) { movidos.put(mov(de.getPath(), final_.getPath(), m.optString("motivo"))); continue; }
             try {
@@ -331,6 +332,7 @@ public final class Motor {
                 Files.move(de.toPath(), final_.toPath(), StandardCopyOption.ATOMIC_MOVE);
                 movidos.put(mov(de.getPath(), final_.getPath(), m.optString("motivo")));
             } catch (IOException | UnsupportedOperationException e1) {
+                if (de.isDirectory()) { falhas.put(de.getPath() + ": " + e1.getMessage()); continue; } // pasta: só move no mesmo armazenamento
                 try {
                     Files.copy(de.toPath(), final_.toPath());
                     if (!de.delete()) throw new IOException("copiei, mas não consegui apagar o original");

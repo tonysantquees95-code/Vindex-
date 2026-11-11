@@ -67,7 +67,7 @@ export function Explorar() {
   const abrir = (i: ItemDePasta) => {
     if (i.pasta) { setBusca(""); setVista({ tipo: "pasta", caminho: i.caminho }); return; }
     if (motor.recursos.abrirArquivos) void motor.abrirArquivo(i.caminho).catch((e) => setErro(texto(e)));
-    else setMsg("Abrir arquivos por aqui ainda não existe no Android. Use a pasta no gerenciador do celular; aqui você organiza, renomeia e manda para a lixeira.");
+    else setMsg("Esta versão não abre arquivos.");
   };
   const pastaAtual = vista.tipo === "pasta" ? vista.caminho : null;
   const trilha = useMemo(() => {
@@ -90,16 +90,16 @@ export function Explorar() {
     try { await motor.renomear(renomeando.caminho, renomeando.nome); setRenomeando(null); setMsg("Renomeado."); void carregar(vista); } catch (e) { setErro(texto(e)); }
   }
   async function lixeira() {
-    const lista = itens.filter((i) => marcados.has(i.caminho) && !i.pasta).map((i) => i.caminho);
-    if (!lista.length) { setErro("Marque arquivos (pastas ainda não vão para a lixeira)."); return; }
+    const lista = itens.filter((i) => marcados.has(i.caminho)).map((i) => i.caminho);
+    if (!lista.length) { setErro("Marque o que quer mandar para a lixeira."); return; }
     try {
       const r = await motor.paraLixeira(lista);
       setDesfazer(r.movidos);
-      setMsg(`${r.movidos.length} arquivo(s) na lixeira do Vindex (pasta “Vindex-Quarentena” ao lado). Dá para desfazer.${r.falhas.length ? ` ${r.falhas.length} falharam.` : ""}`);
+      setMsg(`${r.movidos.length} item(ns) na lixeira do Vindex (pasta “Vindex-Quarentena” ao lado). Dá para desfazer.${r.falhas.length ? ` ${r.falhas.length} falharam.` : ""}`);
       void carregar(vista);
     } catch (e) { setErro(texto(e)); }
   }
-  async function voltar() { const r = await motor.desfazer(desfazer); setDesfazer([]); setMsg(`${r.movidos.length} arquivo(s) voltaram ao lugar.`); void carregar(vista); }
+  async function voltar() { const r = await motor.desfazer(desfazer); setDesfazer([]); setMsg(`${r.movidos.length} item(ns) voltaram ao lugar.`); void carregar(vista); }
   const alternar = (c: string) => setMarcados((m) => { const n = new Set(m); if (n.has(c)) n.delete(c); else n.add(c); return n; });
 
   // ------------------------------------------------------------ início (como o menu lateral do Solid)

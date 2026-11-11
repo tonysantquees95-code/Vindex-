@@ -192,6 +192,29 @@ public class VindexPlugin extends Plugin {
     }
 
     /** Baixa o APK novo (só de endereços do GitHub), confere o SHA-256 e abre a confirmação de instalação do Android. */
+    /** Abre um arquivo no app padrão do Android (por FileProvider; programas instaláveis só abrem pelo instalador do sistema). */
+    @PluginMethod
+    public void abrirArquivo(final PluginCall call) {
+        String caminho = call.getString("caminho", "");
+        File f = new File(caminho);
+        if (!temAcessoATudo()) { pedirAcessoATudo(); call.reject("Libere “Acesso a todos os arquivos” para o Vindex e tente de novo."); return; }
+        if (!f.isFile()) { call.reject("O arquivo não existe."); return; }
+        String ext = Motor.extensao(f.getName());
+        String mime = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+        try {
+            android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", f);
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(uri, mime == null ? "*/*" : mime);
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (android.content.ActivityNotFoundException e) {
+            call.reject("Não achei um app para abrir esse tipo de arquivo.");
+        } catch (Exception e) {
+            call.reject("Não consegui abrir o arquivo: " + e.getMessage());
+        }
+    }
+
     @PluginMethod
     public void instalarAtualizacao(final PluginCall call) {
         final String url = call.getString("url", "");

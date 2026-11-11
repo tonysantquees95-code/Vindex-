@@ -171,8 +171,12 @@ pub fn aplicar(movimentos: &[Movimento], simulacao: bool) -> ResultadoDeMoviment
             r.falhas.push(format!("{}: destino inválido", m.de.display()));
             continue;
         };
-        if !m.de.is_file() {
+        if !m.de.exists() {
             r.falhas.push(format!("{}: não existe mais", m.de.display()));
+            continue;
+        }
+        if m.de.is_dir() && pasta.starts_with(&m.de) {
+            r.falhas.push(format!("{}: não dá para mover uma pasta para dentro dela mesma", m.de.display()));
             continue;
         }
         let nome = m.para.file_name().and_then(|n| n.to_str()).unwrap_or("arquivo");
@@ -181,7 +185,13 @@ pub fn aplicar(movimentos: &[Movimento], simulacao: bool) -> ResultadoDeMoviment
             r.movidos.push(Movimento { de: m.de.clone(), para: final_, motivo: m.motivo.clone() });
             continue;
         }
-        let feito = fs::create_dir_all(pasta).and_then(|_| fs::rename(&m.de, &final_).or_else(|_| fs::copy(&m.de, &final_).and_then(|_| fs::remove_file(&m.de))));
+        let feito = fs::create_dir_all(pasta).and_then(|_| {
+            if m.de.is_dir() {
+                fs::rename(&m.de, &final_) // pasta: só move no mesmo disco (nunca copia e apaga)
+            } else {
+                fs::rename(&m.de, &final_).or_else(|_| fs::copy(&m.de, &final_).and_then(|_| fs::remove_file(&m.de)))
+            }
+        });
         match feito {
             Ok(()) => r.movidos.push(Movimento { de: m.de.clone(), para: final_, motivo: m.motivo.clone() }),
             Err(e) => r.falhas.push(format!("{}: {}", m.de.display(), e)),

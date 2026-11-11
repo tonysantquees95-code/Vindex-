@@ -8,6 +8,7 @@ interface PluginVindex {
   permissoes(): Promise<{ lista: Permissao[] }>;
   pedirPermissao(o: { id: string }): Promise<void>;
   abrirConfiguracao(o: { id: string }): Promise<void>;
+  abrirArquivo(o: { caminho: string }): Promise<void>;
   instalarAtualizacao(o: { url: string; sha256: string }): Promise<void>;
 }
 const Vindex = registerPlugin<PluginVindex>("Vindex");
@@ -18,7 +19,7 @@ export function motorAndroid(): Motor {
   const c = async <T>(comando: string, args: Record<string, unknown> = {}): Promise<T> => JSON.parse((await Vindex.motor({ comando, args: JSON.stringify(args) })).resultado) as T;
   return {
     plataforma: "android",
-    recursos: { extrair: false, defender: false, inicializacao: false, abrirPasta: false, abrirArquivos: false, arquivosSuspeitos: true, verificarApps: true, permissoes: true, atualizaSozinho: true },
+    recursos: { extrair: false, defender: false, inicializacao: false, abrirPasta: false, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: true, permissoes: true, atualizaSozinho: true },
     diagnostico: (processos = 8) => c("diagnostico", { processos }),
     otimizarTudo: (simulacao = false) => c("otimizar_tudo", { simulacao }),
     escolherPasta: async () => (await Vindex.escolherPasta()).pasta,
@@ -51,7 +52,7 @@ export function motorAndroid(): Motor {
     renomear: (caminho, nome) => c("explorar_renomear", { caminho, nome }),
     paraLixeira: (caminhos) => c("explorar_lixeira", { caminhos }),
     abrirPasta: async () => undefined,
-    abrirArquivo: indisponivel,
+    abrirArquivo: (caminho) => Vindex.abrirArquivo({ caminho }),
     abrirLink: async (url) => { window.open(url, "_blank"); },
     estadoProtecao: () => c("estado_protecao"),
     defenderVarrer: indisponivel,

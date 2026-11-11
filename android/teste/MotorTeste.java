@@ -78,6 +78,14 @@ public final class MotorTeste {
         confere("alto".equals(Motor.riscoDoApp(true, true, false, false, false, false, false)[0]), "fora da loja + acessibilidade é alto");
         confere("medio".equals(Motor.riscoDoApp(false, false, false, false, true, false, false)[0]), "da loja ouvindo notificações é atenção");
 
+        // lixeira do explorador: arquivo e pasta inteira vão para Vindex-Quarentena e voltam com o desfazer
+        File lx = new File(t, "lx"); grava(new File(lx, "pasta/dentro.txt"), "x"); grava(new File(lx, "solto.txt"), "y");
+        JSONObject lixo = Motor.explorarLixeira(new JSONArray().put(new File(lx, "pasta").getPath()).put(new File(lx, "solto.txt").getPath()));
+        confere(lixo.getJSONArray("movidos").length() == 2 && !new File(lx, "pasta").exists() && new File(lx, Motor.QUARENTENA + "/pasta/dentro.txt").exists(), "pasta e arquivo vão para a lixeira");
+        confere(Motor.explorarLixeira(new JSONArray().put(new File(lx, Motor.QUARENTENA).getPath())).getJSONArray("movidos").length() == 0, "a própria lixeira não vai para a lixeira");
+        Motor.desfazer(lixo.getJSONArray("movidos"));
+        confere(new File(lx, "pasta/dentro.txt").exists() && new File(lx, "solto.txt").exists(), "desfazer devolve pasta e arquivo");
+
         System.out.println(falhas == 0 ? "TUDO CERTO" : falhas + " falha(s)");
         System.exit(falhas == 0 ? 0 : 1);
     }

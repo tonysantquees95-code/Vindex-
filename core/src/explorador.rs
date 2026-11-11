@@ -193,11 +193,11 @@ pub fn renomear(caminho: &Path, novo: &str) -> Result<PathBuf, String> {
     Ok(destino)
 }
 
-/// Manda arquivos para a lixeira do Vindex (pasta “Vindex-Quarentena” ao lado), sem apagar de vez. Devolve os movimentos para desfazer.
+/// Manda arquivos e pastas para a lixeira do Vindex (pasta “Vindex-Quarentena” ao lado), sem apagar de vez. Devolve os movimentos para desfazer.
 pub fn para_lixeira(caminhos: &[PathBuf]) -> organizador::ResultadoDeMovimento {
     let movs: Vec<Movimento> = caminhos
         .iter()
-        .filter(|c| c.is_file())
+        .filter(|c| (c.is_file() || c.is_dir()) && c.parent().is_some() && c.file_name().is_some_and(|n| n != QUARENTENA))
         .filter_map(|c| {
             let pasta = c.parent()?.join(QUARENTENA);
             Some(Movimento { de: c.clone(), para: pasta.join(c.file_name()?), motivo: "lixeira do Vindex".into() })
@@ -253,10 +253,18 @@ mod testes {
         assert!(q.is_dir() && !p.exists());
         let f = q.join("a.txt");
         fs::write(&f, b"oi").unwrap();
-        let r = para_lixeira(&[f.clone(), q.clone()]);
+        let r = para_lixeira(&[f.clone()]);
         assert_eq!(r.movidos.len(), 1);
         assert!(!f.exists() && q.join(QUARENTENA).join("a.txt").exists());
         assert!(organizador::desfazer(&r.movidos).falhas.is_empty());
         assert!(f.exists());
+        // pasta inteira também vai para a lixeira (e volta com tudo dentro)
+        let r2 = para_lixeira(&[q.clone()]);
+        assert_eq!(r2.movidos.len(), 1);
+        assert!(!q.exists() && t.path().join(QUARENTENA).join("Viagem/a.txt").exists());
+        assert!(organizador::desfazer(&r2.movidos).falhas.is_empty());
+        assert!(f.exists());
+        // a própria lixeira não vai para a lixeira
+        assert!(para_lixeira(&[t.path().join(QUARENTENA)]).movidos.is_empty());
     }
 }
