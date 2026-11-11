@@ -1,4 +1,4 @@
-import type { CSSProperties, SVGProps } from "react";
+import type { CSSProperties, ReactElement, SVGProps } from "react";
 
 /** Ícones de linha, como os da Vênus: traço, ponta, junta e preenchimento vêm das variáveis CSS do pacote escolhido nos Ajustes. */
 const estilo: CSSProperties = {
@@ -15,7 +15,7 @@ const L = { fill: "none" } as const;
 
 export type NomeIcone = "painel" | "otimizar" | "arquivos" | "regras" | "descompactar" | "seguranca" | "conta" | "ajustes" | "menu" | "fechar" | "atualizar" | "rede";
 
-const DESENHOS: Record<NomeIcone, JSX.Element> = {
+const DESENHOS: Record<NomeIcone, ReactElement> = {
   painel: <><rect x="3.5" y="3.5" width="7" height="7" rx="2" /><rect x="13.5" y="3.5" width="7" height="4.5" rx="2" {...L} /><rect x="13.5" y="11" width="7" height="9.5" rx="2" /><rect x="3.5" y="13.5" width="7" height="7" rx="2" {...L} /></>,
   otimizar: <path d="M13 2.8 5.5 13.2h5.2L9.9 21.2 18.5 10h-5.4z" />,
   arquivos: <path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.2h7a2 2 0 0 1 2 2V17.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />,
