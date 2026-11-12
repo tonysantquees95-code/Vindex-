@@ -18,8 +18,8 @@ export function Cartao({ titulo, acao, children, className = "" }: { titulo?: st
 }
 
 export function Botao({ variante = "suave", className = "", ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { variante?: "primario" | "suave" | "perigo" }) {
-  const base = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition disabled:opacity-40";
-  const v = variante === "primario" ? "bg-neon/90 text-fundo hover:bg-neon" : variante === "perigo" ? "border border-erro/40 text-erro hover:bg-erro/10" : "border border-borda text-texto hover:bg-white/5";
+  const base = "inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--raio-botao,0.75rem)] px-4 text-sm font-medium transition disabled:opacity-40";
+  const v = variante === "primario" ? "btn-primario bg-neon/90 text-fundo hover:bg-neon" : variante === "perigo" ? "border border-erro/40 text-erro hover:bg-erro/10" : "border border-borda text-texto hover:bg-white/5";
   return <button className={`${base} ${v} ${className}`} {...p} />;
 }
 
@@ -67,4 +67,14 @@ export function Grafico({ series, altura = 90 }: { series: { nome: string; cor: 
 export function Barra({ valor, rotulo }: { valor: number; rotulo: string }) {
   const cor = COR[tomDoUso(valor)];
   return <div role="progressbar" aria-label={rotulo} aria-valuenow={Math.round(valor)} className="h-2 overflow-hidden rounded-full bg-borda"><div className="h-full rounded-full" style={{ width: `${Math.min(100, valor)}%`, background: cor, transition: "width .5s" }} /></div>;
+}
+
+/** Interruptor: o botão redondo anda de uma ponta à outra, sempre dentro da trilha. */
+export function Interruptor({ ligado, aoMudar, rotulo }: { ligado: boolean; aoMudar: (v: boolean) => void; rotulo: string }) {
+  return (
+    <button type="button" role="switch" aria-checked={ligado} aria-label={rotulo} onClick={() => aoMudar(!ligado)}
+      className={`relative block h-8 w-14 flex-none overflow-hidden rounded-full border transition-colors ${ligado ? "border-neon bg-neon" : "border-borda bg-white/15"}`}>
+      <span className={`absolute left-0 top-1/2 block size-6 -translate-y-1/2 rounded-full bg-white shadow transition-transform duration-200 ${ligado ? "translate-x-[1.7rem]" : "translate-x-[0.2rem]"}`} />
+    </button>
+  );
 }

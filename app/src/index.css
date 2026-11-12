@@ -16,3 +16,8 @@ body { margin: 0; background: radial-gradient(1200px 600px at 80% -10%, #1b1140 
 .num { font-variant-numeric: tabular-nums; }
 .brilho { box-shadow: 0 0 24px -6px var(--color-neon); }
 button { cursor: pointer; }
+
+/* estilo dos botões principais, escolhido em Ajustes › Aparência */
+html[data-botoes="degrade"] .btn-primario { background: linear-gradient(135deg, var(--color-neon), var(--color-magenta)); color: var(--color-fundo); }
+html[data-botoes="contorno"] .btn-primario { background: transparent; color: var(--color-neon); border: 1.5px solid var(--color-neon); }
+html[data-botoes="contorno"] .btn-primario:hover { background: color-mix(in srgb, var(--color-neon) 14%, transparent); }

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { AJUSTES_PADRAO, CORES, ICONES, limparAjustes } from "../src/ajustes.ts";
+import { AJUSTES_PADRAO, CORES, ICONES, corDoTema, corLegivel, hexParaHsl, hslParaHex, limparAjustes, parDaCor } from "../src/ajustes.ts";
 import { haNovaVersao, precisaConferir, versaoValida } from "../src/atualizacao.ts";
 import { devePassar } from "../src/autoOrganizar.ts";
 
@@ -8,7 +8,7 @@ test("ajustes inválidos voltam ao padrão e valores certos ficam", () => {
   assert.deepEqual(limparAjustes(null), AJUSTES_PADRAO);
   assert.deepEqual(limparAjustes({ cor: "hacker", icones: 3, autoAtualizar: "sim" }), AJUSTES_PADRAO);
   const a = limparAjustes({ cor: "rosa", icones: "fino", autoAtualizar: false, autoOrganizar: false });
-  assert.deepEqual(a, { cor: "rosa", icones: "fino", autoAtualizar: false, autoOrganizar: false });
+  assert.deepEqual(a, { ...AJUSTES_PADRAO, cor: "rosa", icones: "fino", autoAtualizar: false, autoOrganizar: false });
   assert.ok(CORES.length >= 5 && ICONES.length >= 4);
 });
 
@@ -43,4 +43,24 @@ test("organização automática roda a cada 6 horas", () => {
   assert.equal(devePassar(0, 5), true);
   assert.equal(devePassar(1000, 1000 + 3_600_000), false);
   assert.equal(devePassar(1000, 1000 + 7 * 3_600_000), true);
+});
+
+test("personalização: cor própria, formato e estilo dos botões", () => {
+  const a = limparAjustes({ cor: "personalizada", corPersonalizada: "#FF8800", formato: "pilula", estilo: "degrade" });
+  assert.deepEqual([a.cor, a.corPersonalizada, a.formato, a.estilo], ["personalizada", "#ff8800", "pilula", "degrade"]);
+  // lixo volta ao padrão
+  const b = limparAjustes({ cor: "personalizada", corPersonalizada: "laranja", formato: "estrela", estilo: 5 });
+  assert.deepEqual([b.corPersonalizada, b.formato, b.estilo], [AJUSTES_PADRAO.corPersonalizada, "redondo", "solido"]);
+  assert.equal(corDoTema(a).destaque, "#ff8800");
+  assert.equal(corDoTema(limparAjustes({ cor: "rosa" })).destaque, "#f472b6");
+});
+
+test("conversão de cores é reversível e o par muda o matiz", () => {
+  for (const hex of ["#22d3ee", "#ff8800", "#808080", "#ffffff"]) assert.equal(hslParaHex(...hexParaHsl(hex)), hex);
+  const [h1] = hexParaHsl("#22d3ee");
+  const [h2] = hexParaHsl(parDaCor("#22d3ee"));
+  assert.ok(Math.abs(((h2 - h1 + 360) % 360) - 55) < 3);
+  // cor escura demais é clareada para aparecer no fundo escuro
+  assert.ok(hexParaHsl(corLegivel("#101030"))[2] >= 0.5);
+  assert.equal(corLegivel("#22d3ee"), "#22d3ee");
 });
