@@ -4,6 +4,7 @@ import { bytes, nomeDoArquivo } from "../formato";
 import type { Armazenamento, ItemDePasta, Movimento, PastaConhecida } from "../ponte";
 import { Aviso, Botao, Cartao } from "../ui";
 import { Icone, type NomeIcone } from "../icones";
+import { registrarVoltar } from "../voltar";
 
 const TIPO_ICONE = (c: string): NomeIcone => (["pasta", "imagens", "videos", "audios", "documentos", "planilhas", "apresentacoes", "compactados", "instaladores", "codigo"].includes(c) ? (c as NomeIcone) : "outros");
 const COLECOES: { id: string; rotulo: string; icone: NomeIcone }[] = [
@@ -133,6 +134,19 @@ export function Explorar({ abrirEm = null }: { abrirEm?: string | null }) {
       void carregar(vista);
     } catch (e) { setErro(texto(e)); }
   }
+  /** Sobe uma pasta (ou volta ao início dos armazenamentos). Serve ao botão ← e ao "voltar" do aparelho. */
+  function subir() {
+    if (pastaAtual && pai && armaz.every((a) => a.caminho.replace(/[\\/]+$/, "") !== pastaAtual.replace(/[\\/]+$/, ""))) setVista({ tipo: "pasta", caminho: pai });
+    else setVista({ tipo: "inicio" });
+  }
+  useEffect(() => {
+    if (vista.tipo === "inicio") return;
+    return registrarVoltar(2, () => { subir(); return true; });
+  }); // sem lista de dependências: sempre enxerga a pasta de agora
+  useEffect(() => {
+    if (perguntando === null && nova === null && !renomeando) return;
+    return registrarVoltar(3, () => { setPerguntando(null); setNova(null); setRenomeando(null); return true; });
+  }, [perguntando, nova, renomeando]);
   const todosMarcados = itens.length > 0 && itens.every((i) => marcados.has(i.caminho));
   const marcarTodos = () => setMarcados(todosMarcados ? new Set() : new Set(itens.map((i) => i.caminho)));
   const inverter = () => setMarcados(new Set(itens.filter((i) => !marcados.has(i.caminho)).map((i) => i.caminho)));
@@ -172,7 +186,7 @@ export function Explorar({ abrirEm = null }: { abrirEm?: string | null }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Botao className="!min-h-10 !px-3" aria-label="Voltar" onClick={() => (pastaAtual && pai && armaz.every((a) => a.caminho.replace(/[\\/]+$/, "") !== pastaAtual.replace(/[\\/]+$/, "")) ? setVista({ tipo: "pasta", caminho: pai }) : setVista({ tipo: "inicio" }))}>←</Botao>
+        <Botao className="!min-h-10 !px-3" aria-label="Voltar" onClick={subir}>←</Botao>
         <h2 className="min-w-0 flex-1 truncate text-base font-semibold">{titulo}</h2>
         <Botao className="!min-h-10 !px-3" aria-label="Início" onClick={() => setVista({ tipo: "inicio" })}>🏠</Botao>
       </div>

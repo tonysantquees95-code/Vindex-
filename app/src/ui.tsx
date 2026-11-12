@@ -71,6 +71,23 @@ export function Velocimetro({ valor, rotulo, detalhe, unidade = "%" }: { valor: 
   );
 }
 
+/** Saúde do aparelho: anel completo com o número no meio. Tamanho fixo; o valor desliza, sem saltos. */
+export function AnelDeSaude({ valor, rotulo }: { valor: number; rotulo: string }) {
+  const v = Math.max(0, Math.min(100, useSuave(valor, 1400)));
+  const cor = v >= 80 ? COR.ok : v >= 55 ? COR.aviso : COR.erro;
+  const R = 56, C = 2 * Math.PI * R;
+  return (
+    <svg viewBox="0 0 140 140" className="mx-auto block w-44" role="img" aria-label={`${rotulo}: ${Math.round(v)} de 100`}>
+      <g transform="rotate(-90 70 70)" fill="none" strokeLinecap="round" strokeWidth="11">
+        <circle cx="70" cy="70" r={R} stroke="#1c2740" />
+        <circle cx="70" cy="70" r={R} stroke={cor} strokeDasharray={`${(C * v) / 100} ${C}`} style={{ filter: `drop-shadow(0 0 6px ${cor})` }} />
+      </g>
+      <text x="70" y="80" textAnchor="middle" className="num" fill="#e6ecf8" fontSize="42" fontWeight="600">{Math.round(v)}</text>
+      <text x="70" y="100" textAnchor="middle" fill="#8a97b3" fontSize="10">{rotulo}</text>
+    </svg>
+  );
+}
+
 /** Gráfico de linha simples (histórico em tempo real). */
 export function Grafico({ series, altura = 90 }: { series: { nome: string; cor: string; valores: number[] }[]; altura?: number }) {
   const W = 300;

@@ -1,3 +1,4 @@
+import { instalarVoltar, registrarVoltar } from "./voltar";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type TouchEvent } from "react";
 import { aparelhoLocal, buscarPedidos, guardarSessao, responderPedido, sair, sessaoGuardada, verificar, ErroConta, SERVIDOR, type Sessao } from "./conta";
 import { pastasSalvas, useMotor } from "./estado";
@@ -54,6 +55,11 @@ export function App() {
   }, [motor]);
   const [ultimoPedido, setUltimoPedido] = useState("");
   const [menu, setMenu] = useState(false);
+  // botão voltar do aparelho: fecha o menu, sobe de pasta ou volta ao Painel; só depois pede um segundo toque para sair
+  const [saindo, setSaindo] = useState(false);
+  useEffect(() => { instalarVoltar(() => { setSaindo(true); window.setTimeout(() => setSaindo(false), 2500); }); }, []);
+  useEffect(() => registrarVoltar(1, () => { if (aba !== "painel") { setAba("painel"); return true; } return false; }), [aba]);
+  useEffect(() => (menu ? registrarVoltar(3, () => { setMenu(false); return true; }) : undefined), [menu]);
   const [ajustes] = useAjustes();
   const permissoes = usePermissoes();
   const [permVistas, setPermVistas] = useState(() => { try { return localStorage.getItem("vindex.permissoes.vistas") === "1"; } catch { return false; } });
@@ -198,6 +204,7 @@ export function App() {
       )}
       <main className="flex-1">{demo || liberado || aba === "conta" || aba === "ajustes" ? telas[aba] : null}</main>
 
+      {saindo && <div role="status" className="fixed inset-x-0 bottom-24 z-50 mx-auto w-max max-w-[90%] rounded-full border border-white/10 bg-black/80 px-4 py-2 text-sm text-texto backdrop-blur">Toque em voltar de novo para sair</div>}
       {/* menu lateral (celular): abre por cima, sem ocupar a tela toda */}
       <div className={`fixed inset-0 z-40 sm:hidden ${menu ? "" : "pointer-events-none"}`} aria-hidden={!menu}>
         <div onClick={() => setMenu(false)} className={`absolute inset-0 bg-black/60 transition-opacity ${menu ? "opacity-100" : "opacity-0"}`} />

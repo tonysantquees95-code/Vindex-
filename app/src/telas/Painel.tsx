@@ -3,7 +3,7 @@ import { useMotor } from "../estado";
 import { acrescentar, bytes, tempoLigado } from "../formato";
 import { Icone } from "../icones";
 import type { Diagnostico } from "../ponte";
-import { Aviso, Barra, Botao, Cartao, Grafico, Velocimetro } from "../ui";
+import { Aviso, AnelDeSaude, Barra, Botao, Cartao, Grafico, Velocimetro } from "../ui";
 
 /** Valores já suavizados (média móvel) que alimentam a nota. */
 export type Suaves = { cpu: number; ram: number; temp: number | null };
@@ -96,10 +96,8 @@ export function Painel({ ir }: { ir: (aba: string) => void }) {
       {erro && <Aviso tom="erro">{erro}</Aviso>}
       <Cartao className="text-center">
         <p className="text-sm text-suave">{d.maquina || "Este aparelho"} · {d.sistema} · ligado há {tempoLigado(d.ligado_ha_s)}</p>
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-          <div className="text-center"><div className="num w-24 text-5xl font-semibold" style={{ color: nota >= 80 ? "#34d399" : nota >= 55 ? "#fbbf24" : "#f87171" }}>{nota}</div><div className="text-xs text-suave">saúde do aparelho</div></div>
-          <div className="h-11 w-64 max-w-full overflow-hidden text-left text-sm leading-[1.375rem] text-suave">{saude.dicas.length ? saude.dicas.slice(0, 2).map((t) => <div key={t} className="truncate">• {t}</div>) : <><div className="truncate">• Tudo certo por aqui.</div><div className="truncate">• Que tal liberar mais espaço?</div></>}</div>
-        </div>
+        <div className="mt-3"><AnelDeSaude valor={nota} rotulo="saúde" /></div>
+        <div className="mx-auto mt-2 h-11 w-72 max-w-full overflow-hidden text-center text-sm leading-[1.375rem] text-suave">{saude.dicas.length ? saude.dicas.slice(0, 2).map((t) => <div key={t} className="truncate">{t}</div>) : <><div className="truncate">Tudo certo por aqui.</div><div className="truncate">Que tal liberar mais espaço?</div></>}</div>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Botao variante="primario" className="brilho !min-h-12 px-6" onClick={() => ir("otimizar")}><Icone nome="otimizar" tam={18} />Otimizar…</Botao>
           <Botao className="!min-h-12" onClick={() => ir("seguranca")}><Icone nome="seguranca" tam={18} />Segurança</Botao>

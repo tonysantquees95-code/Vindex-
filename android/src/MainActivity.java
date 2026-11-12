@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 
+import android.webkit.WebView;
+import androidx.activity.OnBackPressedCallback;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -36,6 +38,18 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(VindexPlugin.class);
         super.onCreate(savedInstanceState);
+
+        // O Capacitor não trata o "voltar" do aparelho (sai do app). Aqui ele anda no histórico do app (janelas, subpastas, abas)
+        // e só sai quando não há mais para onde voltar.
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                WebView w = getBridge() == null ? null : getBridge().getWebView();
+                if (w != null && w.canGoBack()) { w.goBack(); return; }
+                setEnabled(false);
+                getOnBackPressedDispatcher().onBackPressed();
+            }
+        });
         lerPedido(getIntent());
 
         Window w = getWindow();
