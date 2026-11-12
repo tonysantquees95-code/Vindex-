@@ -32,8 +32,8 @@ export const ESTILOS: EstiloDeBotao[] = [
 ];
 
 export const COR_PERSONALIZADA = "personalizada";
-export interface Ajustes { cor: string; corPersonalizada: string; formato: string; estilo: string; icones: string; autoAtualizar: boolean; autoOrganizar: boolean }
-export const AJUSTES_PADRAO: Ajustes = { cor: "ciano", corPersonalizada: "#22d3ee", formato: "redondo", estilo: "solido", icones: "padrao", autoAtualizar: true, autoOrganizar: true };
+export interface Ajustes { cor: string; corPersonalizada: string; formato: string; estilo: string; icones: string; autoAtualizar: boolean; autoOrganizar: boolean; autoExtrair: boolean }
+export const AJUSTES_PADRAO: Ajustes = { cor: "ciano", corPersonalizada: "#22d3ee", formato: "redondo", estilo: "solido", icones: "padrao", autoAtualizar: true, autoOrganizar: true, autoExtrair: false };
 
 export const hexValido = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v);
 
@@ -83,6 +83,7 @@ export function limparAjustes(v: unknown): Ajustes {
     icones: ICONES.some((i) => i.id === o.icones) ? (o.icones as string) : AJUSTES_PADRAO.icones,
     autoAtualizar: typeof o.autoAtualizar === "boolean" ? o.autoAtualizar : AJUSTES_PADRAO.autoAtualizar,
     autoOrganizar: typeof o.autoOrganizar === "boolean" ? o.autoOrganizar : AJUSTES_PADRAO.autoOrganizar,
+    autoExtrair: typeof o.autoExtrair === "boolean" ? o.autoExtrair : AJUSTES_PADRAO.autoExtrair,
   };
 }
 

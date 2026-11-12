@@ -27,3 +27,13 @@ export function acrescentar<T>(lista: T[], valor: T, max = 60): T[] {
   const v = [...lista, valor];
   return v.length > max ? v.slice(v.length - max) : v;
 }
+
+const COMPACTADOS = /\.(zip|7z|rar|tar|tgz|gz|bz2|xz|tbz2|tbz|txz|cbz|cbr)$/i;
+/** Arquivo que o Vindex sabe descompactar (ZIP, 7z, RAR, TAR, GZ, BZ2, XZ). */
+export const ehCompactado = (nome: string) => COMPACTADOS.test(nome);
+/** "/Download/Jogo.tar.gz" → "/Download/Jogo": a pasta onde extrair por padrão. */
+export function pastaDeExtracao(caminho: string): string {
+  const sep = caminho.includes("\\") ? "\\" : "/";
+  const base = nomeDoArquivo(caminho).replace(/\.(tar\.(gz|bz2|xz))$/i, "").replace(/\.[^.]+$/, "");
+  return `${pastaDoArquivo(caminho)}${sep}${base || "extraido"}`;
+}

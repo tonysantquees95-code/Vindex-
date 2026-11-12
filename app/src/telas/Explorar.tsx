@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMotor } from "../estado";
-import { bytes, nomeDoArquivo } from "../formato";
+import { bytes, ehCompactado, nomeDoArquivo } from "../formato";
+import { useAjustes } from "../usarAjustes";
+import { PainelCompactado, PainelCompactar } from "./Compactados";
 import type { Armazenamento, ItemDePasta, Movimento, PastaConhecida } from "../ponte";
 import { Aviso, Botao, Cartao } from "../ui";
 import { Icone, type NomeIcone } from "../icones";
@@ -38,6 +40,8 @@ export function Explorar({ abrirEm = null }: { abrirEm?: string | null }) {
   const [erro, setErro] = useState("");
   const [msg, setMsg] = useState("");
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [ajustes] = useAjustes();
+  const [painel, setPainel] = useState<{ tipo: "abrir"; caminho: string; direto: boolean } | { tipo: "compactar"; caminhos: string[] } | null>(null);
   const [desfazer, setDesfazer] = useState<Movimento[]>([]);
   const [busca, setBusca] = useState("");
   const [nova, setNova] = useState<string | null>(null);
@@ -71,6 +75,7 @@ export function Explorar({ abrirEm = null }: { abrirEm?: string | null }) {
   function texto(e: unknown) { return e instanceof Error ? e.message : typeof e === "string" ? e : "Não deu certo."; }
   const abrir = (i: ItemDePasta) => {
     if (i.pasta) { setBusca(""); setVista({ tipo: "pasta", caminho: i.caminho }); return; }
+    if (motor.recursos.extrair && ehCompactado(i.nome)) { setPainel({ tipo: "abrir", caminho: i.caminho, direto: ajustes.autoExtrair }); return; }
     if (motor.recursos.abrirArquivos) void motor.abrirArquivo(i.caminho).catch((e) => setErro(texto(e)));
     else setMsg("Esta versão não abre arquivos.");
   };
@@ -195,6 +200,8 @@ export function Explorar({ abrirEm = null }: { abrirEm?: string | null }) {
           {trilha.map((t, i) => <span key={t.caminho} className="flex items-center gap-1">{i > 0 && "›"}<button className="rounded px-1 py-0.5 hover:text-texto" onClick={() => setVista({ tipo: "pasta", caminho: t.caminho })}>{t.rotulo}</button></span>)}
         </nav>
       )}
+      {painel?.tipo === "abrir" && <PainelCompactado key={painel.caminho} caminho={painel.caminho} direto={painel.direto} aoFechar={() => setPainel(null)} aoExtrair={() => void carregar(vista)} />}
+      {painel?.tipo === "compactar" && <PainelCompactar caminhos={painel.caminhos} aoFechar={() => setPainel(null)} aoCriar={() => { setMarcados(new Set()); void carregar(vista); }} />}
       <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (busca.trim()) setVista({ tipo: "busca", caminho: pastaAtual ?? raizesDeBusca[0] ?? "", texto: busca.trim() }); }}>
         <input className="min-h-10 w-full rounded-xl border border-borda bg-white/5 px-3 text-sm outline-none focus:border-neon" placeholder={pastaAtual ? "Buscar nesta pasta…" : "Buscar pelo nome…"} value={busca} onChange={(e) => setBusca(e.target.value)} />
         <Botao disabled={!busca.trim()}>Buscar</Botao>
@@ -205,6 +212,7 @@ export function Explorar({ abrirEm = null }: { abrirEm?: string | null }) {
         {itens.length > 0 && vista.tipo !== "busca" && <Botao onClick={marcarTodos}>{todosMarcados ? "Desmarcar tudo" : "Selecionar tudo"}</Botao>}
         {marcados.size > 0 && marcados.size < itens.length && <Botao onClick={inverter}>Inverter seleção</Botao>}
         {marcados.size > 0 && emQuarentena && <Botao onClick={() => void restaurar()}>Restaurar ({marcados.size})</Botao>}
+        {marcados.size > 0 && motor.compactar && <Botao onClick={() => setPainel({ tipo: "compactar", caminhos: escolhidos().map((i) => i.caminho) })}>Compactar ({marcados.size})</Botao>}
         {marcados.size > 0 && <Botao variante="perigo" onClick={perguntar}>Excluir ({marcados.size})</Botao>}
         {desfazer.length > 0 && <Botao onClick={voltar}>Desfazer</Botao>}
       </div>

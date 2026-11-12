@@ -113,6 +113,7 @@ export function AjustesTela({ aoAtualizar, nova }: { aoAtualizar: (v: InfoVersao
 
       <Cartao titulo="Organização">
         <Chave ligado={a.autoOrganizar} aoMudar={(v) => definir({ autoOrganizar: v })} rotulo="Organizar pastas sozinho" detalhe="Arruma por categoria as pastas escolhidas (Downloads e Documentos de início) a cada 6 horas. Você pode desfazer na hora." />
+        {motor.recursos.extrair && <Chave ligado={a.autoExtrair} aoMudar={(v) => definir({ autoExtrair: v })} rotulo="Extrair direto ao tocar" detalhe="Ao tocar num arquivo compactado (ZIP, 7z, RAR…) no Explorar, o Vindex já extrai para uma pasta com o nome dele. Desligado, ele mostra o conteúdo e pergunta." />}
       </Cartao>
 
       {motor.recursos.permissoes && (

@@ -54,7 +54,7 @@ public class VindexPlugin extends Plugin {
     public void motor(final PluginCall call) {
         final String comando = call.getString("comando", "");
         final String args = call.getString("args", "{}");
-        getBridge().execute(new Runnable() {
+        Runnable trabalho = new Runnable() {
             @Override
             public void run() {
                 try {
@@ -66,7 +66,10 @@ public class VindexPlugin extends Plugin {
                     call.reject(e.getMessage() == null ? e.toString() : e.getMessage());
                 }
             }
-        });
+        };
+        // descompactar e compactar levam minutos: têm fio próprio, para a tela poder perguntar o progresso enquanto isso
+        if (comando.equals("arquivo_extrair") || comando.equals("arquivo_compactar")) new Thread(trabalho, "vindex-" + comando).start();
+        else getBridge().execute(trabalho);
     }
 
     @PluginMethod
@@ -417,6 +420,24 @@ public class VindexPlugin extends Plugin {
                     v.put(new JSONObject().put("rotulo", "Cartão SD").put("caminho", raiz.getPath()).put("total", raiz.getTotalSpace()).put("livre", raiz.getFreeSpace()));
                 }
                 return v;
+            }
+            case "arquivo_listar":
+                semAcesso();
+                return Compactador.listar(new File(a.getString("origem")), a.optString("senha", ""));
+            case "arquivo_extrair":
+                semAcesso();
+                return Compactador.extrair(new File(a.getString("origem")), new File(a.getString("destino")), a.optString("senha", ""));
+            case "arquivo_progresso":
+                return Compactador.progresso();
+            case "arquivo_cancelar":
+                Compactador.cancelar = true;
+                return new JSONObject().put("ok", true);
+            case "arquivo_compactar": {
+                semAcesso();
+                JSONArray o = a.getJSONArray("origens");
+                java.util.List<File> fs = new java.util.ArrayList<File>();
+                for (int i = 0; i < o.length(); i++) fs.add(new File(o.getString(i)));
+                return Compactador.compactar(fs, new File(a.getString("destino")), a.optString("formato", "zip"));
             }
             case "explorar_listar":
                 semAcesso();

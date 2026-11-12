@@ -1,5 +1,6 @@
 import { registerPlugin } from "@capacitor/core";
 import type { Motor, Permissao } from "./tipos";
+import { pastaDeExtracao } from "../formato";
 
 /** Mesmo contrato do Rust, implementado em Kotlin (plugin "Vindex"). */
 interface PluginVindex {
@@ -25,7 +26,7 @@ export function motorAndroid(): Motor {
   const c = async <T>(comando: string, args: Record<string, unknown> = {}): Promise<T> => JSON.parse((await Vindex.motor({ comando, args: JSON.stringify(args) })).resultado) as T;
   return {
     plataforma: "android",
-    recursos: { extrair: false, defender: false, inicializacao: false, abrirPasta: false, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: true, permissoes: true, atualizaSozinho: true },
+    recursos: { extrair: true, defender: false, inicializacao: false, abrirPasta: false, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: true, permissoes: true, atualizaSozinho: true },
     diagnostico: (processos = 8) => c("diagnostico", { processos }),
     otimizarTudo: (simulacao = false) => c("otimizar_tudo", { simulacao }),
     escolherPasta: async () => (await Vindex.escolherPasta()).pasta,
@@ -47,7 +48,12 @@ export function motorAndroid(): Motor {
       { id: "dcim", rotulo: "Câmera", caminho: "/storage/emulated/0/DCIM" }
     ],
     escolherArquivo: async () => null,
-    listarCompactado: indisponivel, pastaSugerida: indisponivel, extrair: indisponivel,
+    listarCompactado: (origem, senha) => c("arquivo_listar", { origem, senha: senha ?? "" }),
+    pastaSugerida: async (origem) => pastaDeExtracao(origem),
+    extrair: (origem, destino, senha) => c("arquivo_extrair", { origem, destino, senha: senha ?? "" }),
+    compactar: (origens, destino, formato) => c("arquivo_compactar", { origens, destino, formato }),
+    progressoArquivo: () => c("arquivo_progresso"),
+    cancelarArquivo: async () => { await c("arquivo_cancelar"); },
     inicioPeloMenu: async () => null,
     pastaPedida: async () => (await Vindex.pastaPedida()).pasta,
     armazenamentos: () => c("explorar_armazenamentos"),

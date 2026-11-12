@@ -35,6 +35,7 @@ export interface Regra {
 
 export interface PastaConhecida { id: string; rotulo: string; caminho: string }
 export interface ConteudoCompactado { itens: number; bytes: number; nomes: string[]; formato: string }
+export interface ProgressoArquivo { fase: string; atual: string; feitos: number; total: number }
 export interface ResultadoExtracao { destino: string; arquivos: number; bytes: number; pulados: string[] }
 export interface EstadoProtecao {
   suportado: boolean; antivirus_ligado: boolean | null; tempo_real_ligado: boolean | null; assinaturas_dias: number | null;
@@ -88,9 +89,13 @@ export interface Motor {
   otimizarMemoria(): Promise<{ suportado: boolean; processos_ajustados: number; liberado_bytes: number; nota: string }>;
   pastasConhecidas(): Promise<PastaConhecida[]>;
   escolherArquivo(): Promise<string | null>;
-  listarCompactado(origem: string): Promise<ConteudoCompactado>;
+  listarCompactado(origem: string, senha?: string): Promise<ConteudoCompactado>;
   pastaSugerida(origem: string): Promise<string>;
-  extrair(origem: string, destino: string): Promise<ResultadoExtracao>;
+  extrair(origem: string, destino: string, senha?: string): Promise<ResultadoExtracao>;
+  /** Android: cria ZIP, 7z ou TAR.GZ; consulta o andamento de extrair/compactar; cancela. */
+  compactar?(origens: string[], destino: string, formato: "zip" | "7z" | "tgz"): Promise<{ destino: string; arquivos: number; bytes: number }>;
+  progressoArquivo?(): Promise<ProgressoArquivo>;
+  cancelarArquivo?(): Promise<void>;
   inicioPeloMenu(): Promise<InicioPeloMenu | null>;
   /** Só no Android: pasta que outro app (o Vortex) pediu para abrir; entrega uma vez. */
   pastaPedida?(): Promise<string | null>;

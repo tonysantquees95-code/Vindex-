@@ -3,11 +3,52 @@ import { useMotor } from "../estado";
 import { bytes, nomeDoArquivo } from "../formato";
 import type { ConteudoCompactado, InicioPeloMenu, ResultadoExtracao } from "../ponte";
 import { Aviso, Botao, Cartao } from "../ui";
+import { PainelCompactado } from "./Compactados";
+import type { ItemDePasta } from "../ponte";
 
 const campo = "min-h-11 w-full rounded-xl border border-borda bg-black/20 px-3 text-sm";
 
 /** Descompactar como no WinRAR: escolhe o arquivo, vê o conteúdo, escolhe para onde vai e extrai. */
 export function Descompactar({ inicio, aoUsarInicio }: { inicio: InicioPeloMenu | null; aoUsarInicio: () => void }) {
+  const motor = useMotor();
+  if (motor.plataforma === "android") return <DescompactarAndroid />;
+  return <DescompactarWindows inicio={inicio} aoUsarInicio={aoUsarInicio} />;
+}
+
+/** No Android: lista os compactados do aparelho; tocar em um abre o conteúdo e extrai. */
+function DescompactarAndroid() {
+  const motor = useMotor();
+  const [lista, setLista] = useState<ItemDePasta[] | null>(null);
+  const [aberto, setAberto] = useState<string | null>(null);
+  const [erro, setErro] = useState("");
+  const carregar = useCallback(async () => {
+    setErro("");
+    try { const raizes = (await motor.armazenamentos()).map((a) => a.caminho); setLista(await motor.colecao(raizes, "compactados", 300)); }
+    catch (e) { setErro(e instanceof Error ? e.message : String(e)); setLista([]); }
+  }, [motor]);
+  useEffect(() => { void carregar(); }, [carregar]);
+  return (
+    <div className="space-y-4">
+      {aberto && <PainelCompactado key={aberto} caminho={aberto} aoFechar={() => setAberto(null)} />}
+      <Cartao titulo="Arquivos compactados no aparelho">
+        <p className="mb-2 text-xs text-suave">Toque em um para ver o conteúdo e extrair. Funciona com ZIP, 7z, RAR, TAR, TAR.GZ, GZ, BZ2 e XZ — sem precisar de outro app. Também dá para tocar neles direto no Explorar.</p>
+        {erro && <Aviso tom="erro">{erro}</Aviso>}
+        {lista === null ? <p className="text-sm text-suave">Procurando…</p> : lista.length === 0 ? <p className="text-sm text-suave">Nenhum arquivo compactado encontrado.</p> : (
+          <ul className="space-y-1.5">
+            {lista.map((i) => (
+              <li key={i.caminho}><button className="w-full rounded-xl border border-borda bg-white/5 p-3 text-left hover:bg-white/10" onClick={() => setAberto(i.caminho)}>
+                <div className="break-all text-sm">{i.nome}</div><div className="text-xs text-suave">{bytes(i.bytes)}</div>
+              </button></li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-3"><Botao onClick={() => void carregar()}>Procurar de novo</Botao></div>
+      </Cartao>
+    </div>
+  );
+}
+
+function DescompactarWindows({ inicio, aoUsarInicio }: { inicio: InicioPeloMenu | null; aoUsarInicio: () => void }) {
   const motor = useMotor();
   const [origem, setOrigem] = useState("");
   const [destino, setDestino] = useState("");
