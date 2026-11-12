@@ -27,8 +27,28 @@ export function versaoValida(v: unknown): InfoVersao | null {
   };
 }
 
+const REPOSITORIO = "tonysantquees95-code/Vindex-";
+
+/** Plano B: pergunta direto ao GitHub (o repositório do Vindex é público), caso o servidor da Vênus não responda. */
+export async function versaoDoGithub(app: "vindex-android" | "vindex-windows"): Promise<InfoVersao | null> {
+  const r = await fetch(`https://api.github.com/repos/${REPOSITORIO}/releases/latest`, { cache: "no-store", headers: { Accept: "application/vnd.github+json" } });
+  if (!r.ok) return null;
+  const o = (await r.json()) as { tag_name?: string; body?: string; assets?: { name?: string; size?: number; digest?: string; browser_download_url?: string }[] };
+  const m = /^v?1\.(\d+)$/.exec(o.tag_name ?? "");
+  const arq = (o.assets ?? []).find((a) => (app === "vindex-android" ? /\.apk$/i.test(a.name ?? "") : /\.exe$/i.test(a.name ?? "")));
+  if (!m || !arq) return null;
+  const dig = String(arq.digest ?? "");
+  return versaoValida({ numero: Number(m[1]), tag: o.tag_name, notas: o.body, tamanho: arq.size, sha256: dig.toLowerCase().startsWith("sha256:") ? dig.slice(7) : "", url: arq.browser_download_url });
+}
+
 export async function procurarVersao(servidor: string, app: "vindex-android" | "vindex-windows"): Promise<InfoVersao | null> {
-  const r = await fetch(`${servidor}/atualizacao?app=${app}`, { cache: "no-store" });
-  if (!r.ok) throw new Error(r.status === 404 ? "Ainda não há versão publicada." : "Não consegui consultar as atualizações agora.");
-  return versaoValida(await r.json());
+  try {
+    const r = await fetch(`${servidor}/atualizacao?app=${app}`, { cache: "no-store" });
+    if (r.ok) { const v = versaoValida(await r.json()); if (v) return v; }
+  } catch { /* cai para o GitHub */ }
+  try {
+    const v = await versaoDoGithub(app);
+    if (v) return v;
+  } catch { /* sem internet */ }
+  throw new Error("Não consegui consultar as atualizações agora. Confira a internet e tente de novo.");
 }

@@ -57,9 +57,9 @@ export function App() {
 
   /** Atualiza o próprio Vindex: no Android baixa o APK e abre a instalação; no Windows abre o download do instalador. */
   const atualizar = useCallback(async (v: InfoVersao) => {
-    setAvisoAtualizacao("");
+    setAvisoAtualizacao(motor.recursos.atualizaSozinho ? "Baixando a versão nova…" : "");
     try {
-      if (motor.recursos.atualizaSozinho) { await motor.instalarAtualizacao(v.url, v.sha256); setAvisoAtualizacao(motor.plataforma === "android" ? "Baixei a versão nova: confirme a instalação na tela do Android." : "Baixando a versão nova: o Vindex vai fechar, atualizar e abrir de novo sozinho."); }
+      if (motor.recursos.atualizaSozinho) { await motor.instalarAtualizacao(v.url, v.sha256); setAvisoAtualizacao(motor.plataforma === "android" ? "Pronto: toque em Instalar na tela do Android que abriu." : "Baixando a versão nova: o Vindex vai fechar, atualizar e abrir de novo sozinho."); }
       else await motor.abrirLink(`${SERVIDOR}/atualizacao?app=vindex-windows&baixar=1`);
     } catch (e) { setAvisoAtualizacao(e instanceof Error ? e.message : typeof e === "string" ? e : "Não consegui atualizar agora."); }
   }, [motor]);

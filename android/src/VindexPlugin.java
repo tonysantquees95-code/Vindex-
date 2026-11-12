@@ -252,23 +252,20 @@ public class VindexPlugin extends Plugin {
                     for (byte x : md.digest()) hex.append(String.format("%02x", x));
                     if (!sha.isEmpty() && !sha.equalsIgnoreCase(hex.toString())) { apk.delete(); throw new Exception("O arquivo baixado não confere com o publicado. Nada foi instalado."); }
 
-                    PackageInstaller pi = getContext().getPackageManager().getPackageInstaller();
-                    int id = pi.createSession(new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL));
-                    PackageInstaller.Session ses = pi.openSession(id);
-                    try {
-                        java.io.OutputStream so = ses.openWrite("vindex.apk", 0, apk.length());
-                        java.io.InputStream si = new java.io.FileInputStream(apk);
-                        try {
-                            byte[] b = new byte[64 * 1024];
-                            int n;
-                            while ((n = si.read(b)) > 0) so.write(b, 0, n);
-                            ses.fsync(so);
-                        } finally { si.close(); so.close(); }
-                        Intent it = new Intent(ACAO_INSTALAR).setPackage(getContext().getPackageName());
-                        int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
-                        ses.commit(PendingIntent.getBroadcast(getContext(), id, it, flags).getIntentSender());
-                    } finally { ses.close(); }
-                    call.resolve();
+                    // abre a tela de instalação do próprio Android (mais confiável que a sessão do instalador, que às vezes não mostra a confirmação)
+                    final android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", apk);
+                    final Intent it = new Intent(Intent.ACTION_VIEW);
+                    it.setDataAndType(uri, "application/vnd.android.package-archive");
+                    it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try { getContext().startActivity(it); call.resolve(); }
+                            catch (Exception e) { call.reject("Não consegui abrir a instalação: " + e.getMessage()); }
+                        }
+                    });
+                    return;
+
                 } catch (Exception e) {
                     call.reject(e.getMessage() == null ? e.toString() : e.getMessage());
                 }
