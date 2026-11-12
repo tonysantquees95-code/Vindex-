@@ -9,6 +9,7 @@ interface PluginVindex {
   pedirPermissao(o: { id: string }): Promise<void>;
   abrirConfiguracao(o: { id: string }): Promise<void>;
   abrirArquivo(o: { caminho: string }): Promise<void>;
+  pastaPedida(): Promise<{ pasta: string | null }>;
   instalarAtualizacao(o: { url: string; sha256: string }): Promise<void>;
 }
 const Vindex = registerPlugin<PluginVindex>("Vindex");
@@ -43,6 +44,7 @@ export function motorAndroid(): Motor {
     escolherArquivo: async () => null,
     listarCompactado: indisponivel, pastaSugerida: indisponivel, extrair: indisponivel,
     inicioPeloMenu: async () => null,
+    pastaPedida: async () => (await Vindex.pastaPedida()).pasta,
     armazenamentos: () => c("explorar_armazenamentos"),
     listarPasta: (caminho, ocultos = false) => c("explorar_listar", { caminho, ocultos }),
     recentes: (raizes, limite = 60) => c("explorar_recentes", { raizes, limite }),

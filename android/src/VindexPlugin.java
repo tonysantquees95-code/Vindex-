@@ -125,6 +125,16 @@ public class VindexPlugin extends Plugin {
         call.resolve();
     }
 
+    /** Pasta pedida por outro app (o Vortex abre o Vindex direto na pasta dos jogos). Entrega uma vez. */
+    @PluginMethod
+    public void pastaPedida(final PluginCall call) {
+        String p = MainActivity.pastaPedida;
+        MainActivity.pastaPedida = null;
+        JSObject saida = new JSObject();
+        saida.put("pasta", p);
+        call.resolve(saida);
+    }
+
     /** Atalhos para configurações do sistema que o Vindex recomenda (Play Protect, bloqueio de tela, acessibilidade…). */
     @PluginMethod
     public void abrirConfiguracao(final PluginCall call) {

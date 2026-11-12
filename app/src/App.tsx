@@ -42,6 +42,16 @@ export function App() {
   const [inicio, setInicio] = useState<InicioPeloMenu | null>(null);
   // aberto pelo menu do botão direito ("Extrair com o Vindex…"): vai direto para Descompactar
   useEffect(() => { void motor.inicioPeloMenu().then((i) => { if (i) { setInicio(i); setAba("descompactar"); } }).catch(() => undefined); }, [motor]);
+  // o Vortex abre o Vindex direto na pasta dos jogos: vale ao abrir e quando o app volta para a frente
+  const [pastaPedida, setPastaPedida] = useState<string | null>(null);
+  useEffect(() => {
+    if (!motor.pastaPedida) return;
+    const ver = () => { void motor.pastaPedida?.().then((p) => { if (p) { setPastaPedida(null); window.setTimeout(() => setPastaPedida(p), 0); setAba("arquivos"); } }).catch(() => undefined); };
+    ver();
+    document.addEventListener("visibilitychange", ver);
+    window.addEventListener("focus", ver);
+    return () => { document.removeEventListener("visibilitychange", ver); window.removeEventListener("focus", ver); };
+  }, [motor]);
   const [ultimoPedido, setUltimoPedido] = useState("");
   const [menu, setMenu] = useState(false);
   const [ajustes] = useAjustes();
@@ -154,7 +164,7 @@ export function App() {
   const telas: Record<IdAba, ReactNode> = {
     painel: <Painel ir={ir} />,
     otimizar: <Otimizar />,
-    arquivos: <Arquivos />,
+    arquivos: <Arquivos abrirEm={pastaPedida} />,
     regras: <RegrasTela />,
     descompactar: <Descompactar inicio={inicio} aoUsarInicio={() => setInicio(null)} />,
     seguranca: <Seguranca />,

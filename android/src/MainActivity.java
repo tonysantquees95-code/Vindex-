@@ -1,6 +1,7 @@
 package tech.vetorial.vindex;
 
 import android.graphics.Color;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
@@ -16,11 +17,26 @@ import com.getcapacitor.BridgeActivity;
 /** Registra o plugin do Vindex e mantém o app ENTRE as barras do Android (status em cima, navegação embaixo). */
 public class MainActivity extends BridgeActivity {
     private static final int FUNDO = Color.parseColor("#070B14");
+    /** Pasta que outro app (o Vortex) pediu para abrir; o plugin entrega uma vez e limpa. */
+    static volatile String pastaPedida = null;
+
+    private static void lerPedido(Intent i) {
+        if (i == null) return;
+        String p = i.getStringExtra("vindex_pasta");
+        if (p != null && p.startsWith("/")) pastaPedida = p;
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        lerPedido(intent);
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(VindexPlugin.class);
         super.onCreate(savedInstanceState);
+        lerPedido(getIntent());
 
         Window w = getWindow();
         WindowCompat.setDecorFitsSystemWindows(w, false);

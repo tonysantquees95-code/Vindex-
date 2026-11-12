@@ -21,9 +21,10 @@ const quando = (s: number) => (s ? new Date(s * 1000).toLocaleDateString("pt-BR"
 const nomeDe = (c: string) => nomeDoArquivo(c.replace(/[\\/]+$/, "")) || c;
 
 /** Gerenciador de arquivos: armazenamentos, favoritos, coleções (recentes, fotos, música…), pastas e busca. */
-export function Explorar() {
+export function Explorar({ abrirEm = null }: { abrirEm?: string | null }) {
   const motor = useMotor();
   const [vista, setVista] = useState<Vista>({ tipo: "inicio" });
+  useEffect(() => { if (abrirEm) { setBusca(""); setVista({ tipo: "pasta", caminho: abrirEm }); } }, [abrirEm]); // eslint-disable-line react-hooks/exhaustive-deps
   const [armaz, setArmaz] = useState<Armazenamento[]>([]);
   const [favoritos, setFavoritos] = useState<PastaConhecida[]>([]);
   const [itens, setItens] = useState<ItemDePasta[]>([]);

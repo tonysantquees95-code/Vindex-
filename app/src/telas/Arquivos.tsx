@@ -7,8 +7,9 @@ import { Explorar } from "./Explorar";
 import { Pastas } from "./Pastas";
 
 /** Arquivos: abre como um gerenciador (Explorar) e guarda as ferramentas de organização em “Organizar”. */
-export function Arquivos() {
+export function Arquivos({ abrirEm = null }: { abrirEm?: string | null }) {
   const [aba, setAba] = useState<"explorar" | "organizar">(() => { try { return sessionStorage.getItem("vindex.arquivos.aba") === "organizar" ? "organizar" : "explorar"; } catch { return "explorar"; } });
+  useEffect(() => { if (abrirEm) setAba("explorar"); }, [abrirEm]);
   const trocar = (a: "explorar" | "organizar") => { setAba(a); try { sessionStorage.setItem("vindex.arquivos.aba", a); } catch { /* ok */ } };
   return (
     <div className="space-y-4">
@@ -17,7 +18,7 @@ export function Arquivos() {
           <button key={id} role="tab" aria-selected={aba === id} onClick={() => trocar(id)} className={`min-h-10 rounded-xl px-4 text-sm ${aba === id ? "bg-neon/15 text-neon" : "border border-borda text-suave"}`}>{r}</button>
         ))}
       </div>
-      {aba === "explorar" ? <Explorar /> : <Organizar />}
+      {aba === "explorar" ? <Explorar abrirEm={abrirEm} /> : <Organizar />}
     </div>
   );
 }

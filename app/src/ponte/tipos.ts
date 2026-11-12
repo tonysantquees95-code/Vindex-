@@ -90,6 +90,8 @@ export interface Motor {
   pastaSugerida(origem: string): Promise<string>;
   extrair(origem: string, destino: string): Promise<ResultadoExtracao>;
   inicioPeloMenu(): Promise<InicioPeloMenu | null>;
+  /** Só no Android: pasta que outro app (o Vortex) pediu para abrir; entrega uma vez. */
+  pastaPedida?(): Promise<string | null>;
   abrirPasta(caminho: string): Promise<void>;
   // explorador de arquivos
   armazenamentos(): Promise<Armazenamento[]>;
