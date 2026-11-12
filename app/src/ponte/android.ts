@@ -53,6 +53,8 @@ export function motorAndroid(): Motor {
     novaPasta: (caminho, nome) => c("explorar_nova_pasta", { caminho, nome }),
     renomear: (caminho, nome) => c("explorar_renomear", { caminho, nome }),
     paraLixeira: (caminhos) => c("explorar_lixeira", { caminhos }),
+    apagarDeVez: (caminhos) => c("explorar_apagar", { caminhos }),
+    quarentenas: (raizes) => c("explorar_quarentenas", { raizes }),
     abrirPasta: async () => undefined,
     abrirArquivo: (caminho) => Vindex.abrirArquivo({ caminho }),
     abrirLink: async (url) => { window.open(url, "_blank"); },

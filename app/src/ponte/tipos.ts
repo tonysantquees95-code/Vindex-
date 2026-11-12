@@ -102,6 +102,10 @@ export interface Motor {
   novaPasta(caminho: string, nome: string): Promise<string>;
   renomear(caminho: string, nome: string): Promise<string>;
   paraLixeira(caminhos: string[]): Promise<ResultadoDeMovimento>;
+  /** Exclui de vez, sem lixeira. */
+  apagarDeVez(caminhos: string[]): Promise<{ apagados: number; falhas: string[] }>;
+  /** Pastas “Vindex-Quarentena” dentro das raízes. */
+  quarentenas(raizes: string[]): Promise<ItemDePasta[]>;
   /** abrir um arquivo com o programa padrão (Windows); no Android ainda não */
   abrirArquivo(caminho: string): Promise<void>;
   abrirLink(url: string): Promise<void>;

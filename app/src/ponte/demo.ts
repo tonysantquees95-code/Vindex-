@@ -33,7 +33,7 @@ export function motorDemo(): Motor {
     listarCompactado: async () => ({ itens: 0, bytes: 0, nomes: [], formato: "zip" }), pastaSugerida: async (o) => o.replace(/\.[^.]+$/, ""),
     extrair: async () => { throw new Error("Modo demonstração."); },
     armazenamentos: async () => [], listarPasta: async () => { throw new Error("Modo demonstração."); }, recentes: async () => [], colecao: async () => [], buscarNome: async () => [],
-    novaPasta: async () => { throw new Error("Modo demonstração."); }, renomear: async () => { throw new Error("Modo demonstração."); }, paraLixeira: async () => vazio, abrirArquivo: async () => undefined,
+    novaPasta: async () => { throw new Error("Modo demonstração."); }, renomear: async () => { throw new Error("Modo demonstração."); }, paraLixeira: async () => vazio, apagarDeVez: async () => ({ apagados: 0, falhas: [] }), quarentenas: async () => [], abrirArquivo: async () => undefined,
     inicioPeloMenu: async () => null, abrirPasta: async () => undefined, abrirLink: async (u) => { window.open(u, "_blank"); },
     estadoProtecao: async () => ({ suportado: false, antivirus_ligado: null, tempo_real_ligado: null, assinaturas_dias: null, firewall: [], nota: "Modo demonstração." }),
     defenderVarrer: async () => { throw new Error("Modo demonstração."); },

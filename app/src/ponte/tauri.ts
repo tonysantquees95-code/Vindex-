@@ -42,6 +42,8 @@ export async function motorTauri(): Promise<Motor> {
     novaPasta: (caminho, nome) => c("explorar_nova_pasta", { caminho, nome }),
     renomear: (caminho, nome) => c("explorar_renomear", { caminho, nome }),
     paraLixeira: (caminhos) => c("explorar_lixeira", { caminhos }),
+    apagarDeVez: (caminhos) => c("explorar_apagar", { caminhos }),
+    quarentenas: (raizes) => c("explorar_quarentenas", { raizes }),
     abrirPasta: (caminho) => invoke("abrir_pasta", { caminho }),
     abrirArquivo: (caminho) => invoke("abrir_arquivo", { caminho }),
     abrirLink: (url) => invoke("abrir_link", { url }),

@@ -187,7 +187,7 @@ public final class Motor {
         List<File> l = new ArrayList<>();
         for (File f : filhos) {
             String n = f.getName();
-            if (!ocultos && (oculto(n) || n.equals(QUARENTENA))) continue;
+            if (!ocultos && oculto(n)) continue;
             l.add(f);
         }
         Collections.sort(l, (a, b) -> {
@@ -283,6 +283,52 @@ public final class Motor {
             movs.put(mov(f.getPath(), new File(new File(pai, QUARENTENA), f.getName()).getPath(), "lixeira do Vindex"));
         }
         return aplicar(movs, false);
+    }
+
+    /** Exclui de vez (sem lixeira). Recusa raízes e caminhos curtos e não segue atalhos. */
+    public static JSONObject explorarApagar(JSONArray caminhos) throws JSONException {
+        int apagados = 0;
+        JSONArray falhas = new JSONArray();
+        for (int i = 0; i < caminhos.length(); i++) {
+            File f = new File(caminhos.getString(i));
+            String[] partes = f.getPath().split("/+");
+            int fundura = 0;
+            for (String p : partes) if (!p.isEmpty()) fundura++;
+            // /storage/emulated/0 (3 níveis) é o armazenamento inteiro: só vale dentro dele
+            if (fundura < 4 || f.getName().isEmpty()) { falhas.put(f.getName() + ": protegido, não dá para excluir"); continue; }
+            if (!f.exists() && !ehLink(f)) { falhas.put(f.getName() + ": não existe mais"); continue; }
+            if (apagarRec(f)) apagados++; else falhas.put(f.getName() + ": não consegui excluir");
+        }
+        return new JSONObject().put("apagados", apagados).put("falhas", falhas);
+    }
+
+    private static boolean apagarRec(File f) {
+        if (!ehLink(f) && f.isDirectory()) {
+            File[] filhos = f.listFiles();
+            if (filhos != null) for (File c : filhos) if (!apagarRec(c)) return false;
+        }
+        return f.delete();
+    }
+
+    /** Todas as pastas “Vindex-Quarentena” dentro das raízes (até 6 níveis). */
+    public static JSONArray explorarQuarentenas(List<File> raizes) throws JSONException {
+        JSONArray v = new JSONArray();
+        for (File r : raizes) acharQuarentenas(r, 1, v);
+        return v;
+    }
+
+    private static void acharQuarentenas(File pasta, int nivel, JSONArray saida) throws JSONException {
+        File[] filhos = pasta.listFiles();
+        if (filhos == null) return;
+        for (File f : filhos) {
+            String n = f.getName();
+            if (!f.isDirectory() || oculto(n) || ehLink(f)) continue;
+            if (n.equals(QUARENTENA)) {
+                JSONObject o = itemJson(f, true);
+                o.put("nome", "Quarentena de “" + pasta.getName() + "”");
+                saida.put(o);
+            } else if (nivel < 6) acharQuarentenas(f, nivel + 1, saida);
+        }
     }
 
     // ---------------------------------------------------------------- movimentos

@@ -81,7 +81,7 @@ pub fn listar(caminho: &Path, ocultos: bool) -> Result<Listagem, String> {
     let mut truncado = false;
     for e in rd.filter_map(Result::ok) {
         let nome = e.file_name().to_string_lossy().to_string();
-        if (!ocultos && oculto(&nome)) || nome == QUARENTENA && !ocultos {
+        if !ocultos && oculto(&nome) {
             continue;
         }
         if itens.len() >= LIMITE_LISTA {
@@ -206,6 +206,57 @@ pub fn para_lixeira(caminhos: &[PathBuf]) -> organizador::ResultadoDeMovimento {
     organizador::aplicar(&movs, false)
 }
 
+#[derive(Debug, Serialize)]
+pub struct ResultadoApagar {
+    pub apagados: usize,
+    pub falhas: Vec<String>,
+}
+
+/// Exclui de vez (sem lixeira). Recusa raízes e caminhos curtos demais e nunca segue atalhos (apaga só o atalho).
+pub fn apagar_de_vez(caminhos: &[PathBuf]) -> ResultadoApagar {
+    let mut r = ResultadoApagar { apagados: 0, falhas: Vec::new() };
+    for c in caminhos {
+        let nome = c.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        if c.components().count() < 3 || nome.is_empty() {
+            r.falhas.push(format!("{}: protegido, não dá para excluir", c.display()));
+            continue;
+        }
+        let Ok(meta) = fs::symlink_metadata(c) else { r.falhas.push(format!("{nome}: não existe mais")); continue };
+        let res = if meta.file_type().is_symlink() { fs::remove_file(c).or_else(|_| fs::remove_dir(c)) } else if meta.is_dir() { fs::remove_dir_all(c) } else { fs::remove_file(c) };
+        match res {
+            Ok(()) => r.apagados += 1,
+            Err(e) => r.falhas.push(format!("{nome}: {e}")),
+        }
+    }
+    r
+}
+
+/// Todas as pastas “Vindex-Quarentena” dentro das raízes (até 6 níveis), para a pessoa ver, restaurar ou esvaziar.
+pub fn quarentenas(raizes: &[PathBuf]) -> Vec<Item> {
+    let mut v: Vec<Item> = Vec::new();
+    for raiz in raizes {
+        let it = WalkDir::new(raiz).follow_links(false).max_depth(6).into_iter().filter_entry(|e| e.depth() == 0 || !oculto(&e.file_name().to_string_lossy()));
+        for e in it.filter_map(Result::ok) {
+            if e.depth() == 0 || !e.file_type().is_dir() || e.file_name() != QUARENTENA || v.iter().any(|i| i.caminho == e.path()) {
+                continue;
+            }
+            let Ok(meta) = e.metadata() else { continue };
+            let onde = e.path().parent().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+            v.push(Item {
+                nome: if onde.is_empty() { "Quarentena".into() } else { format!("Quarentena de “{onde}”") },
+                caminho: e.path().to_path_buf(),
+                pasta: true,
+                bytes: 0,
+                modificado: segundos(&meta),
+                categoria: "pasta".into(),
+                itens: fs::read_dir(e.path()).map(|r| r.count() as u64).unwrap_or(0),
+            });
+        }
+    }
+    v.sort_by(|a, b| a.nome.to_lowercase().cmp(&b.nome.to_lowercase()));
+    v
+}
+
 #[cfg(test)]
 mod testes {
     use super::*;
@@ -266,5 +317,29 @@ mod testes {
         assert!(f.exists());
         // a própria lixeira não vai para a lixeira
         assert!(para_lixeira(&[t.path().join(QUARENTENA)]).movidos.is_empty());
+    }
+
+    #[test]
+    fn quarentena_aparece_na_listagem_acha_e_apaga_de_vez() {
+        let t = tempfile::tempdir().unwrap();
+        let f = t.path().join("a.txt");
+        fs::write(&f, b"oi").unwrap();
+        para_lixeira(&[f.clone()]);
+        assert!(listar(t.path(), false).unwrap().itens.iter().any(|i| i.nome == QUARENTENA), "a quarentena tem de aparecer");
+        let q = quarentenas(&[t.path().to_path_buf()]);
+        assert_eq!(q.len(), 1);
+        assert_eq!(q[0].itens, 1);
+        let dentro = t.path().join(QUARENTENA).join("a.txt");
+        let r = apagar_de_vez(&[dentro.clone()]);
+        assert_eq!((r.apagados, r.falhas.len()), (1, 0));
+        assert!(!dentro.exists());
+        // pasta inteira, e caminho protegido
+        let d = t.path().join("Pasta");
+        fs::create_dir_all(d.join("x")).unwrap();
+        fs::write(d.join("x/b"), b"1").unwrap();
+        assert_eq!(apagar_de_vez(&[d.clone()]).apagados, 1);
+        assert!(!d.exists());
+        assert_eq!(apagar_de_vez(&[PathBuf::from("/")]).falhas.len(), 1);
+        assert_eq!(apagar_de_vez(&[PathBuf::from("/tmp")]).falhas.len(), 1);
     }
 }

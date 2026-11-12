@@ -95,7 +95,7 @@ function Organizar() {
               </li>
             ))}</ul>
           )}
-          <p className="mt-2 text-xs text-suave">As outras cópias vão para a pasta “Vindex-Quarentena”, ao lado do arquivo mantido. Nada é apagado de vez.</p>
+          <p className="mt-2 text-xs text-suave">As outras cópias vão para a pasta “Vindex-Quarentena”, ao lado do arquivo mantido. Para ver, restaurar ou excluir de vez: Explorar › Coleções › Quarentena.</p>
         </Cartao>
       )}
 

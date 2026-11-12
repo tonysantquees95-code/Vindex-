@@ -436,6 +436,12 @@ public class VindexPlugin extends Plugin {
             case "explorar_lixeira":
                 semAcesso();
                 return Motor.explorarLixeira(a.optJSONArray("caminhos") == null ? new JSONArray() : a.getJSONArray("caminhos"));
+            case "explorar_apagar":
+                semAcesso();
+                return Motor.explorarApagar(a.optJSONArray("caminhos") == null ? new JSONArray() : a.getJSONArray("caminhos"));
+            case "explorar_quarentenas":
+                semAcesso();
+                return Motor.explorarQuarentenas(raizes(a));
             case "desfazer":
                 return Motor.desfazer(a.optJSONArray("movidos") == null ? new JSONArray() : a.getJSONArray("movidos"));
             default:

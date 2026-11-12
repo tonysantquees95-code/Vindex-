@@ -123,6 +123,8 @@ pub fn executar(comando: &str, args: &Value) -> Result<Value, String> {
         "explorar_nova_pasta" => para(explorador::nova_pasta(&caminho_de(args, "caminho")?, args.get("nome").and_then(|x| x.as_str()).unwrap_or(""))?),
         "explorar_renomear" => para(explorador::renomear(&caminho_de(args, "caminho")?, args.get("nome").and_then(|x| x.as_str()).unwrap_or(""))?),
         "explorar_lixeira" => para(explorador::para_lixeira(&texto_lista(args, "caminhos").into_iter().map(PathBuf::from).collect::<Vec<_>>())),
+        "explorar_apagar" => para(explorador::apagar_de_vez(&texto_lista(args, "caminhos").into_iter().map(PathBuf::from).collect::<Vec<_>>())),
+        "explorar_quarentenas" => para(explorador::quarentenas(&raizes(args)?)),
         "pastas_conhecidas" => para(arquivos::pastas_conhecidas()),
         "listar_arquivo" => para(arquivos::listar(&caminho_de(args, "origem")?)?),
         "extrair" => {

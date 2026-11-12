@@ -86,6 +86,19 @@ public final class MotorTeste {
         Motor.desfazer(lixo.getJSONArray("movidos"));
         confere(new File(lx, "pasta/dentro.txt").exists() && new File(lx, "solto.txt").exists(), "desfazer devolve pasta e arquivo");
 
+        // quarentena visível, achada pela coleção e excluída de vez (caminhos curtos são protegidos)
+        Motor.explorarLixeira(new JSONArray().put(new File(lx, "solto.txt").getPath()));
+        boolean aparece = false;
+        JSONArray lst = Motor.explorarListar(lx, false, 100).getJSONArray("itens");
+        for (int i = 0; i < lst.length(); i++) if (Motor.QUARENTENA.equals(lst.getJSONObject(i).getString("nome"))) aparece = true;
+        confere(aparece, "a quarentena aparece na listagem");
+        java.util.List<File> rs = new java.util.ArrayList<>(); rs.add(lx);
+        confere(Motor.explorarQuarentenas(rs).length() == 1, "acha a pasta de quarentena");
+        confere(Motor.explorarApagar(new JSONArray().put("/storage")).getJSONArray("falhas").length() == 1, "caminho curto é protegido");
+        File dentro = new File(lx, Motor.QUARENTENA + "/solto.txt");
+        int fundura = 0; for (String p : dentro.getPath().split("/+")) if (!p.isEmpty()) fundura++;
+        if (fundura >= 4) confere(Motor.explorarApagar(new JSONArray().put(dentro.getPath())).getInt("apagados") == 1 && !dentro.exists(), "exclui de vez");
+
         System.out.println(falhas == 0 ? "TUDO CERTO" : falhas + " falha(s)");
         System.exit(falhas == 0 ? 0 : 1);
     }

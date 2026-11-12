@@ -13,8 +13,10 @@ const COLECOES: { id: string; rotulo: string; icone: NomeIcone }[] = [
   { id: "videos", rotulo: "Vídeos", icone: "videos" },
   { id: "documentos", rotulo: "Documentos", icone: "documentos" },
   { id: "instaladores", rotulo: "Aplicativos e instaladores", icone: "instaladores" },
-  { id: "compactados", rotulo: "Compactados", icone: "compactados" }
+  { id: "compactados", rotulo: "Compactados", icone: "compactados" },
+  { id: "quarentena", rotulo: "Quarentena (lixeira do Vindex)", icone: "arquivos" }
 ];
+const QUARENTENA = "Vindex-Quarentena";
 type Vista = { tipo: "inicio" } | { tipo: "pasta"; caminho: string } | { tipo: "colecao"; id: string; rotulo: string } | { tipo: "busca"; caminho: string; texto: string };
 
 const quando = (s: number) => (s ? new Date(s * 1000).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "");
@@ -55,7 +57,7 @@ export function Explorar({ abrirEm = null }: { abrirEm?: string | null }) {
         setItens(l.itens); setPai(l.pai); setTruncado(l.truncado);
       } else if (v.tipo === "colecao") {
         setPai(null); setTruncado(false);
-        setItens(v.id === "recentes" ? await motor.recentes(raizesDeBusca, 80) : await motor.colecao(raizesDeBusca, v.id, 300));
+        setItens(v.id === "recentes" ? await motor.recentes(raizesDeBusca, 80) : v.id === "quarentena" ? await motor.quarentenas(raizesDeBusca) : await motor.colecao(raizesDeBusca, v.id, 300));
       } else if (v.tipo === "busca") {
         setPai(null); setTruncado(false);
         setItens(await motor.buscarNome(v.caminho, v.texto));
@@ -91,16 +93,49 @@ export function Explorar({ abrirEm = null }: { abrirEm?: string | null }) {
     if (!renomeando) return;
     try { await motor.renomear(renomeando.caminho, renomeando.nome); setRenomeando(null); setMsg("Renomeado."); void carregar(vista); } catch (e) { setErro(texto(e)); }
   }
+  const [perguntando, setPerguntando] = useState<null | "escolher" | "definitivo">(null);
+  const emQuarentena = pastaAtual !== null && nomeDe(pastaAtual) === QUARENTENA;
+  const semLixeira = emQuarentena || (vista.tipo === "colecao" && vista.id === "quarentena");
+  const escolhidos = () => itens.filter((i) => marcados.has(i.caminho));
+  function perguntar() {
+    if (!escolhidos().length) { setErro("Marque o que quer excluir."); return; }
+    setErro(""); setPerguntando("escolher");
+  }
   async function lixeira() {
-    const lista = itens.filter((i) => marcados.has(i.caminho)).map((i) => i.caminho);
-    if (!lista.length) { setErro("Marque o que quer mandar para a lixeira."); return; }
+    const lista = escolhidos().map((i) => i.caminho);
+    setPerguntando(null);
     try {
       const r = await motor.paraLixeira(lista);
       setDesfazer(r.movidos);
-      setMsg(`${r.movidos.length} item(ns) na lixeira do Vindex (pasta “Vindex-Quarentena” ao lado). Dá para desfazer.${r.falhas.length ? ` ${r.falhas.length} falharam.` : ""}`);
+      setMsg(`${r.movidos.length} item(ns) na lixeira do Vindex (pasta “${QUARENTENA}”, em Coleções › Quarentena). Dá para desfazer.${r.falhas.length ? ` ${r.falhas.length} falharam.` : ""}`);
       void carregar(vista);
     } catch (e) { setErro(texto(e)); }
   }
+  async function excluirDeVez() {
+    const lista = escolhidos().map((i) => i.caminho);
+    setPerguntando(null);
+    try {
+      const r = await motor.apagarDeVez(lista);
+      setDesfazer([]);
+      setMsg(`${r.apagados} item(ns) excluído(s) de vez.${r.falhas.length ? ` ${r.falhas.length} não deu: ${r.falhas[0]}` : ""}`);
+      void carregar(vista);
+    } catch (e) { setErro(texto(e)); }
+  }
+  /** Dentro da quarentena: devolve cada item para a pasta de onde ele saiu (a pasta acima da quarentena). */
+  async function restaurar() {
+    const sep = pastaAtual && pastaAtual.includes("\\") ? "\\" : "/";
+    const acima = pastaAtual ? pastaAtual.replace(/[\\/]+$/, "").split(/[\\/]/).slice(0, -1).join(sep) || sep : "";
+    const lista: Movimento[] = escolhidos().map((i) => ({ de: i.caminho, para: `${acima}${sep}${i.nome}`, motivo: "restaurar" }));
+    if (!lista.length) { setErro("Marque o que quer restaurar."); return; }
+    try {
+      const r = await motor.desfazer(lista.map((m) => ({ de: m.para, para: m.de, motivo: m.motivo })));
+      setMsg(`${r.movidos.length} item(ns) voltaram para ${nomeDe(acima)}.${r.falhas.length ? ` ${r.falhas.length} não deu (já existe algo com o mesmo nome?).` : ""}`);
+      void carregar(vista);
+    } catch (e) { setErro(texto(e)); }
+  }
+  const todosMarcados = itens.length > 0 && itens.every((i) => marcados.has(i.caminho));
+  const marcarTodos = () => setMarcados(todosMarcados ? new Set() : new Set(itens.map((i) => i.caminho)));
+  const inverter = () => setMarcados(new Set(itens.filter((i) => !marcados.has(i.caminho)).map((i) => i.caminho)));
   async function voltar() { const r = await motor.desfazer(desfazer); setDesfazer([]); setMsg(`${r.movidos.length} item(ns) voltaram ao lugar.`); void carregar(vista); }
   const alternar = (c: string) => setMarcados((m) => { const n = new Set(m); if (n.has(c)) n.delete(c); else n.add(c); return n; });
 
@@ -153,7 +188,10 @@ export function Explorar({ abrirEm = null }: { abrirEm?: string | null }) {
       <div className="flex flex-wrap gap-2">
         {pastaAtual && <Botao onClick={() => setNova("")}>＋ Nova pasta</Botao>}
         {pastaAtual && <Botao onClick={() => setOcultos((o) => !o)}>{ocultos ? "Esconder ocultos" : "Mostrar ocultos"}</Botao>}
-        {marcados.size > 0 && <Botao variante="perigo" onClick={lixeira}>Lixeira ({marcados.size})</Botao>}
+        {itens.length > 0 && vista.tipo !== "busca" && <Botao onClick={marcarTodos}>{todosMarcados ? "Desmarcar tudo" : "Selecionar tudo"}</Botao>}
+        {marcados.size > 0 && marcados.size < itens.length && <Botao onClick={inverter}>Inverter seleção</Botao>}
+        {marcados.size > 0 && emQuarentena && <Botao onClick={() => void restaurar()}>Restaurar ({marcados.size})</Botao>}
+        {marcados.size > 0 && <Botao variante="perigo" onClick={perguntar}>Excluir ({marcados.size})</Botao>}
         {desfazer.length > 0 && <Botao onClick={voltar}>Desfazer</Botao>}
       </div>
       {nova !== null && (
@@ -167,6 +205,26 @@ export function Explorar({ abrirEm = null }: { abrirEm?: string | null }) {
           <input autoFocus className="min-h-10 w-full rounded-xl border border-borda bg-white/5 px-3 text-sm outline-none focus:border-neon" value={renomeando.nome} onChange={(e) => setRenomeando({ ...renomeando, nome: e.target.value })} />
           <Botao variante="primario">Renomear</Botao><Botao type="button" onClick={() => setRenomeando(null)}>Cancelar</Botao>
         </form>
+      )}
+      {perguntando && (
+        <div role="alertdialog" aria-label="Como excluir" className="space-y-3 rounded-2xl border border-erro/40 bg-erro/10 p-4">
+          {perguntando === "escolher" ? (
+            <>
+              <p className="text-sm">O que fazer com {marcados.size} {marcados.size === 1 ? "item" : "itens"}?</p>
+              <div className="flex flex-wrap gap-2">
+                {!semLixeira && <Botao variante="primario" onClick={() => void lixeira()}>Enviar para a lixeira</Botao>}
+                <Botao variante="perigo" onClick={() => setPerguntando("definitivo")}>Excluir permanentemente</Botao>
+                <Botao onClick={() => setPerguntando(null)}>Cancelar</Botao>
+              </div>
+              {!semLixeira && <p className="text-xs text-suave">A lixeira guarda tudo na pasta “{QUARENTENA}” e dá para desfazer. Excluir permanentemente não tem volta.</p>}
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-erro">Excluir {marcados.size} {marcados.size === 1 ? "item" : "itens"} para sempre? Isso não pode ser desfeito.</p>
+              <div className="flex flex-wrap gap-2"><Botao variante="perigo" onClick={() => void excluirDeVez()}>Sim, excluir para sempre</Botao><Botao onClick={() => setPerguntando("escolher")}>Voltar</Botao></div>
+            </>
+          )}
+        </div>
       )}
       {erro && <Aviso tom="erro">{erro}</Aviso>}
       {msg && <Aviso tom="ok">{msg}</Aviso>}
