@@ -26,6 +26,7 @@ import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Debug;
 import android.os.Environment;
+import android.os.PowerManager;
 import android.os.Process;
 import android.os.StatFs;
 import android.os.SystemClock;
@@ -524,7 +525,7 @@ public class VindexPlugin extends Plugin {
         if (zonas == null) return;
         int n = 0;
         for (File z : zonas) {
-            if (n >= 6 || !z.getName().startsWith("thermal_zone")) continue;
+            if (n >= 20 || !z.getName().startsWith("thermal_zone")) continue;
             long t = lerLong(new File(z, "temp"));
             if (t <= 0) continue;
             double c = t > 1000 ? t / 1000.0 : t;
@@ -669,10 +670,32 @@ public class VindexPlugin extends Plugin {
                 .put("memoria", new JSONObject().put("total", totalRam).put("usada", usada).put("disponivel", disponivel).put("percentual", totalRam == 0 ? 0 : 100.0 * usada / totalRam))
                 .put("swap_total", swapTotal).put("swap_usado", swapUsado)
                 .put("temperatura_max", maxTemp < 0 ? JSONObject.NULL : maxTemp).put("sensores", sensores)
+                .put("termico", estadoTermico())
                 .put("bateria", bateria == null ? JSONObject.NULL : bateria)
                 .put("discos", new JSONArray().put(disco))
                 .put("processos", processos)
                 .put("rede", rede());
+    }
+
+    /**
+     * O estado térmico que o próprio Android calcula para este modelo (Android 10+): 0 normal, 1 leve, 2 moderado,
+     * 3 severo, 4 crítico, 5 emergência, 6 desligando. "folga" (Android 11+) chega a 1.0 quando o sistema começa a
+     * segurar o desempenho. É a régua certa para cada celular, porque a fabricante calibra os limites do aparelho.
+     */
+    private Object estadoTermico() {
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return JSONObject.NULL;
+            PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+            if (pm == null) return JSONObject.NULL;
+            JSONObject o = new JSONObject().put("estado", pm.getCurrentThermalStatus());
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                float folga = pm.getThermalHeadroom(10);
+                if (!Float.isNaN(folga) && !Float.isInfinite(folga)) o.put("folga", (double) folga);
+            }
+            return o;
+        } catch (Exception e) {
+            return JSONObject.NULL;
+        }
     }
 
     private List<String[]> alvosDeLimpeza() {

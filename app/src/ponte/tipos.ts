@@ -3,6 +3,8 @@ export interface Diagnostico {
   sistema: string; maquina: string; ligado_ha_s: number; cpu_nome: string; cpu_nucleos: number; cpu_uso: number;
   memoria: { total: number; usada: number; disponivel: number; percentual: number };
   temperatura_max: number | null; sensores: { nome: string; celsius: number }[];
+  /** Android 10+: estado térmico que o próprio sistema calcula para este modelo (0 normal … 6 desligando) e a folga (1.0 = limite) */
+  termico?: { estado: number; folga?: number } | null;
   bateria: { nivel: number; estado: string; saude: number } | null;
   discos: { nome: string; ponto: string; tipo: string; sistema: string; total: number; livre: number; percentual_usado: number; saude: string }[];
   processos: { pid: number; nome: string; cpu: number; memoria: number; tempo_uso_s?: number }[];

@@ -52,21 +52,23 @@ export function useSuave(alvo: number, ms = 1100): number {
   return v;
 }
 
-export function Velocimetro({ valor, rotulo, detalhe, unidade = "%" }: { valor: number; rotulo: string; detalhe?: string; unidade?: string }) {
+/** `valor` (0 a 100) é quanto do arco se enche; `numero` é o que aparece escrito (ex.: 44 °C) e `tom` força a cor. */
+export function Velocimetro({ valor, rotulo, detalhe, unidade = "%", numero, tom }: { valor: number; rotulo: string; detalhe?: string; unidade?: string; numero?: number; tom?: "ok" | "aviso" | "erro" }) {
   const v = Math.max(0, Math.min(100, useSuave(valor)));
-  const cor = COR[tomDoUso(v)];
+  const escrito = Math.round(useSuave(numero ?? valor));
+  const cor = COR[tom ?? tomDoUso(v)];
   const R = 52, C = 2 * Math.PI * R, arco = C * (240 / 360);
   return (
-    <div className="flex flex-col items-center" role="img" aria-label={`${rotulo}: ${Math.round(v)}${unidade}`}>
+    <div className="flex flex-col items-center" role="img" aria-label={`${rotulo}: ${escrito}${unidade}`}>
       <svg viewBox="0 0 140 120" className="w-full max-w-[170px]">
         <g transform="rotate(150 70 70)" fill="none" strokeLinecap="round" strokeWidth="11">
           <circle cx="70" cy="70" r={R} stroke="#1c2740" strokeDasharray={`${arco} ${C}`} />
           <circle cx="70" cy="70" r={R} stroke={cor} strokeDasharray={`${(arco * v) / 100} ${C}`} style={{ filter: `drop-shadow(0 0 6px ${cor})` }} />
         </g>
-        <text x="70" y="72" textAnchor="middle" className="num" fill="#e6ecf8" fontSize="26" fontWeight="600">{Math.round(v)}<tspan fontSize="12" fill="#8a97b3">{unidade}</tspan></text>
+        <text x="70" y="72" textAnchor="middle" className="num" fill="#e6ecf8" fontSize="26" fontWeight="600">{escrito}<tspan fontSize="12" fill="#8a97b3">{unidade}</tspan></text>
         <text x="70" y="92" textAnchor="middle" fill="#8a97b3" fontSize="10">{rotulo}</text>
       </svg>
-      {detalhe && <div className="num -mt-2 text-xs text-suave">{detalhe}</div>}
+      {detalhe && <div className="num -mt-2 text-center text-xs text-suave">{detalhe}</div>}
     </div>
   );
 }
