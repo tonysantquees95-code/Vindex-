@@ -18,7 +18,11 @@ function traduzir(e: unknown): ErroBio {
 
 export async function estadoBio(conta: string): Promise<EstadoBio> {
   if (!noAndroid()) return { disponivel: false, ativo: false };
-  try { return await (await plugin()).cofreBioEstado({ conta }); } catch { return { disponivel: false, ativo: false }; }
+  const semBio: EstadoBio = { disponivel: false, ativo: false };
+  try {
+    // se a ponte do Android não responder, o cofre abre sem digital em vez de ficar esperando
+    return await Promise.race([(await plugin()).cofreBioEstado({ conta }), new Promise<EstadoBio>((ok) => setTimeout(() => ok(semBio), 4000))]);
+  } catch { return semBio; }
 }
 /** Pede a identificação do celular e guarda a chave do cofre protegida por ela. */
 export async function ativarBio(conta: string, dek: Uint8Array): Promise<void> {

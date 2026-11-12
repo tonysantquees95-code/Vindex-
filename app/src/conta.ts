@@ -36,7 +36,7 @@ export function guardarSessao(s: Sessao | null): void {
 async function chamar<T>(metodo: string, caminho: string, corpo?: unknown, token?: string): Promise<T> {
   let r: Response;
   try {
-    r = await fetch(`${SERVIDOR}${caminho}`, { method: metodo, headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: corpo === undefined ? undefined : JSON.stringify(corpo) });
+    r = await fetch(`${SERVIDOR}${caminho}`, { method: metodo, headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: corpo === undefined ? undefined : JSON.stringify(corpo), signal: AbortSignal.timeout(20000) });
   } catch {
     throw new ErroConta("Sem conexão com o servidor. Confira a internet.");
   }
