@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { tomDoUso } from "./formato";
 
 const COR = { ok: "#34d399", aviso: "#fbbf24", erro: "#f87171" } as const;
@@ -29,8 +29,31 @@ export function Aviso({ tom = "aviso", children }: { tom?: "ok" | "aviso" | "err
 }
 
 /** Velocímetro em arco (240°) com valor de 0 a 100. */
+/** Anima o número até o novo valor (ease-out), sem saltos. Respeita "reduzir movimento". */
+export function useSuave(alvo: number, ms = 1100): number {
+  const [v, setV] = useState(alvo);
+  const atual = useRef(alvo);
+  useEffect(() => {
+    const de = atual.current;
+    if (de === alvo) return;
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) { atual.current = alvo; setV(alvo); return; }
+    let raf = 0;
+    const t0 = performance.now();
+    const passo = (t: number) => {
+      const k = Math.min(1, (t - t0) / ms);
+      const e = 1 - Math.pow(1 - k, 3);
+      atual.current = de + (alvo - de) * e;
+      setV(atual.current);
+      if (k < 1) raf = requestAnimationFrame(passo);
+    };
+    raf = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(raf);
+  }, [alvo, ms]);
+  return v;
+}
+
 export function Velocimetro({ valor, rotulo, detalhe, unidade = "%" }: { valor: number; rotulo: string; detalhe?: string; unidade?: string }) {
-  const v = Math.max(0, Math.min(100, valor));
+  const v = Math.max(0, Math.min(100, useSuave(valor)));
   const cor = COR[tomDoUso(v)];
   const R = 52, C = 2 * Math.PI * R, arco = C * (240 / 360);
   return (
@@ -38,7 +61,7 @@ export function Velocimetro({ valor, rotulo, detalhe, unidade = "%" }: { valor: 
       <svg viewBox="0 0 140 120" className="w-full max-w-[170px]">
         <g transform="rotate(150 70 70)" fill="none" strokeLinecap="round" strokeWidth="11">
           <circle cx="70" cy="70" r={R} stroke="#1c2740" strokeDasharray={`${arco} ${C}`} />
-          <circle cx="70" cy="70" r={R} stroke={cor} strokeDasharray={`${(arco * v) / 100} ${C}`} style={{ filter: `drop-shadow(0 0 6px ${cor})`, transition: "stroke-dasharray .6s ease" }} />
+          <circle cx="70" cy="70" r={R} stroke={cor} strokeDasharray={`${(arco * v) / 100} ${C}`} style={{ filter: `drop-shadow(0 0 6px ${cor})` }} />
         </g>
         <text x="70" y="72" textAnchor="middle" className="num" fill="#e6ecf8" fontSize="26" fontWeight="600">{Math.round(v)}<tspan fontSize="12" fill="#8a97b3">{unidade}</tspan></text>
         <text x="70" y="92" textAnchor="middle" fill="#8a97b3" fontSize="10">{rotulo}</text>

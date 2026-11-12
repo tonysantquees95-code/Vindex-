@@ -5,17 +5,31 @@ import { Icone } from "../icones";
 import type { Diagnostico } from "../ponte";
 import { Aviso, Barra, Botao, Cartao, Grafico, Velocimetro } from "../ui";
 
-/** Nota de 0 a 100 pela folga de CPU, memória e disco. Simples e explicável. */
-export function notaDeSaude(d: Diagnostico): { nota: number; dicas: string[] } {
+/** Valores já suavizados (média móvel) que alimentam a nota. */
+export type Suaves = { cpu: number; ram: number; temp: number | null };
+
+/**
+ * Saúde de 0 a 100 pelo estado geral do aparelho: armazenamento, bateria, temperatura
+ * e pressão sustentada de memória. O uso momentâneo do processador quase não pesa:
+ * ele mostra carga, não desgaste.
+ */
+export function notaDeSaude(d: Diagnostico, s?: Suaves): { nota: number; dicas: string[] } {
+  const ram = s?.ram ?? d.memoria.percentual;
+  const cpu = s?.cpu ?? d.cpu_uso;
+  const temp = s ? s.temp : d.temperatura_max;
   let nota = 100;
   const dicas: string[] = [];
-  const ruim = (v: number, limite: number, peso: number, msg: string) => { if (v >= limite) { nota -= Math.min(peso, Math.round((v - limite) / 2) + 8); dicas.push(msg); } };
-  ruim(d.cpu_uso, 80, 25, "O processador está muito ocupado.");
-  ruim(d.memoria.percentual, 80, 30, "A memória está quase cheia.");
+  const perde = (v: number, de: number, ate: number, peso: number) => Math.round(peso * Math.max(0, Math.min(1, (v - de) / (ate - de))));
   const disco = d.discos[0];
-  if (disco) ruim(disco.percentual_usado, 85, 30, `O disco ${disco.ponto} está quase cheio.`);
-  if (d.temperatura_max != null) ruim(d.temperatura_max, 80, 20, "A temperatura está alta.");
-  return { nota: Math.max(0, nota), dicas };
+  if (disco) { const p = perde(disco.percentual_usado, 75, 98, 30); if (p > 3) { nota -= p; dicas.push(`O disco ${disco.ponto} está ficando cheio.`); } }
+  if (d.bateria) {
+    const p = perde(100 - d.bateria.saude, 15, 50, 25);
+    if (p > 3) { nota -= p; dicas.push("A bateria já perdeu boa parte da capacidade."); }
+  }
+  if (temp != null) { const p = perde(temp, 38, 55, 25); if (p > 3) { nota -= p; dicas.push("O aparelho está quente."); } }
+  { const p = perde(ram, 85, 98, 15); if (p > 3) { nota -= p; dicas.push("A memória está bem pressionada."); } }
+  { const p = perde(cpu, 92, 100, 5); if (p > 1) { nota -= p; dicas.push("O processador está sob carga constante."); } }
+  return { nota: Math.max(0, Math.min(100, nota)), dicas };
 }
 
 const Ficha = ({ rotulo, valor, detalhe }: { rotulo: string; valor: string; detalhe?: string }) => (
@@ -29,12 +43,27 @@ export function Painel({ ir }: { ir: (aba: string) => void }) {
   const [hist, setHist] = useState<{ cpu: number[]; ram: number[] }>({ cpu: [], ram: [] });
   const vivo = useRef(true);
   const anterior = useRef<{ rx: number; tx: number; t: number } | null>(null);
+  const emas = useRef<Suaves | null>(null);
+  const notaMostrada = useRef<number | null>(null);
+  const [suave, setSuave] = useState<{ s: Suaves; nota: number } | null>(null);
   const [veloc, setVeloc] = useState<{ down: number; up: number } | null>(null);
 
   const ler = useCallback(async () => {
     try {
       const x = await motor.diagnostico(8);
       if (!vivo.current) return;
+      const ema = (a: number, b: number) => a + (b - a) * 0.25;
+      const ant = emas.current;
+      const s: Suaves = ant
+        ? { cpu: ema(ant.cpu, x.cpu_uso), ram: ema(ant.ram, x.memoria.percentual), temp: x.temperatura_max == null ? null : ema(ant.temp ?? x.temperatura_max, x.temperatura_max) }
+        : { cpu: x.cpu_uso, ram: x.memoria.percentual, temp: x.temperatura_max };
+      emas.current = s;
+      // a nota anda no máximo 1 ponto por leitura: nunca dá salto
+      const alvo = notaDeSaude(x, s).nota;
+      const m = notaMostrada.current;
+      const nota = m == null ? alvo : m + Math.max(-1, Math.min(1, alvo - m));
+      notaMostrada.current = nota;
+      setSuave({ s, nota });
       setD(x);
       setErro("");
       if (x.rede) {
@@ -58,7 +87,9 @@ export function Painel({ ir }: { ir: (aba: string) => void }) {
 
   if (!d) return <div className="py-16 text-center text-suave">{erro || "Lendo o seu aparelho…"}</div>;
   const disco = d.discos[0];
-  const saude = notaDeSaude(d);
+  const saude = notaDeSaude(d, suave?.s);
+  const nota = Math.round(suave?.nota ?? saude.nota);
+  const sv = suave?.s;
   const swapPct = d.swap_total ? Math.min(100, ((d.swap_usado ?? 0) / d.swap_total) * 100) : null;
   return (
     <div className="space-y-4">
@@ -66,8 +97,8 @@ export function Painel({ ir }: { ir: (aba: string) => void }) {
       <Cartao className="text-center">
         <p className="text-sm text-suave">{d.maquina || "Este aparelho"} · {d.sistema} · ligado há {tempoLigado(d.ligado_ha_s)}</p>
         <div className="mt-3 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-          <div className="text-center"><div className="num text-5xl font-semibold" style={{ color: saude.nota >= 80 ? "#34d399" : saude.nota >= 55 ? "#fbbf24" : "#f87171" }}>{saude.nota}</div><div className="text-xs text-suave">saúde do aparelho</div></div>
-          <div className="max-w-xs text-left text-sm text-suave">{saude.dicas.length ? saude.dicas.map((t) => <div key={t}>• {t}</div>) : <div>Tudo certo por aqui. Quer liberar ainda mais espaço?</div>}</div>
+          <div className="text-center"><div className="num w-24 text-5xl font-semibold" style={{ color: nota >= 80 ? "#34d399" : nota >= 55 ? "#fbbf24" : "#f87171" }}>{nota}</div><div className="text-xs text-suave">saúde do aparelho</div></div>
+          <div className="h-11 w-64 max-w-full overflow-hidden text-left text-sm leading-[1.375rem] text-suave">{saude.dicas.length ? saude.dicas.slice(0, 2).map((t) => <div key={t} className="truncate">• {t}</div>) : <><div className="truncate">• Tudo certo por aqui.</div><div className="truncate">• Que tal liberar mais espaço?</div></>}</div>
         </div>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Botao variante="primario" className="brilho !min-h-12 px-6" onClick={() => ir("otimizar")}><Icone nome="otimizar" tam={18} />Otimizar…</Botao>
@@ -76,11 +107,11 @@ export function Painel({ ir }: { ir: (aba: string) => void }) {
       </Cartao>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Cartao><Velocimetro valor={d.cpu_uso} rotulo={d.cpu_estimado ? "CPU (estimada)" : "CPU"} detalhe={`${d.cpu_nucleos} núcleos`} /></Cartao>
-        <Cartao><Velocimetro valor={d.memoria.percentual} rotulo="RAM" detalhe={`${bytes(d.memoria.usada)} de ${bytes(d.memoria.total)}${d.swap_total ? ` · +${bytes(d.swap_total)} virtual` : ""}`} /></Cartao>
+        <Cartao><Velocimetro valor={sv?.cpu ?? d.cpu_uso} rotulo={d.cpu_estimado ? "CPU (estimada)" : "CPU"} detalhe={`${d.cpu_nucleos} núcleos`} /></Cartao>
+        <Cartao><Velocimetro valor={sv?.ram ?? d.memoria.percentual} rotulo="RAM" detalhe={`${bytes(d.memoria.usada)} de ${bytes(d.memoria.total)}${d.swap_total ? ` · +${bytes(d.swap_total)} virtual` : ""}`} /></Cartao>
         <Cartao>{disco ? <Velocimetro valor={disco.percentual_usado} rotulo={`Disco ${disco.ponto}`} detalhe={`${disco.tipo} · ${bytes(disco.livre)} livres`} /> : <p className="py-10 text-center text-sm text-suave">Sem disco lido.</p>}</Cartao>
         <Cartao>
-          {d.temperatura_max != null ? <Velocimetro valor={d.temperatura_max} rotulo="Temperatura" unidade="°C" detalhe="sensor mais quente" />
+          {d.temperatura_max != null ? <Velocimetro valor={sv?.temp ?? d.temperatura_max} rotulo="Temperatura" unidade="°C" detalhe="sensor mais quente" />
             : swapPct != null ? <Velocimetro valor={swapPct} rotulo="Memória virtual" detalhe={`${bytes(d.swap_usado ?? 0)} de ${bytes(d.swap_total ?? 0)}`} />
             : d.bateria ? <Velocimetro valor={d.bateria.nivel} rotulo="Bateria" detalhe={d.bateria.estado} />
             : <p className="py-10 text-center text-sm text-suave">Sem mais sensores neste aparelho.</p>}
