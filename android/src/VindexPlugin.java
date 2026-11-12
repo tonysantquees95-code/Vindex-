@@ -850,4 +850,67 @@ public class VindexPlugin extends Plugin {
             return false;
         }
     }
+
+    // ------------------------------------------------------------------ cofre pessoal: digital, rosto ou padrão do celular
+    private CofreBio.Resultado resultadoDoCofre(final PluginCall call) {
+        return new CofreBio.Resultado() {
+            @Override
+            public void ok(String valor) {
+                JSObject o = new JSObject();
+                o.put("valor", valor);
+                call.resolve(o);
+            }
+
+            @Override
+            public void erro(String codigo, String mensagem) {
+                call.reject(mensagem, codigo);
+            }
+        };
+    }
+
+    @PluginMethod
+    public void cofreBioEstado(PluginCall call) {
+        JSObject o = new JSObject();
+        o.put("disponivel", CofreBio.disponivel(getContext()));
+        o.put("ativo", CofreBio.ativo(getContext(), call.getString("conta", "")));
+        call.resolve(o);
+    }
+
+    @PluginMethod
+    public void cofreBioGuardar(final PluginCall call) {
+        final String conta = call.getString("conta", "");
+        final String segredo = call.getString("segredo", "");
+        if (conta.isEmpty() || segredo.isEmpty()) { call.reject("Faltou a conta ou o segredo.", "erro"); return; }
+        final CofreBio.Resultado r = resultadoDoCofre(call);
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                CofreBio.guardar(getActivity(), conta, segredo, r);
+            }
+        });
+    }
+
+    @PluginMethod
+    public void cofreBioAbrir(final PluginCall call) {
+        final String conta = call.getString("conta", "");
+        final CofreBio.Resultado r = resultadoDoCofre(call);
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                CofreBio.abrir(getActivity(), conta, r);
+            }
+        });
+    }
+
+    @PluginMethod
+    public void cofreBioApagar(PluginCall call) {
+        CofreBio.apagar(getContext(), call.getString("conta", ""));
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void cofreProteger(PluginCall call) {
+        CofreBio.proteger(getActivity(), Boolean.TRUE.equals(call.getBoolean("ligado", false)));
+        call.resolve();
+    }
 }

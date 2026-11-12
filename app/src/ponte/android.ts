@@ -11,8 +11,13 @@ interface PluginVindex {
   abrirArquivo(o: { caminho: string }): Promise<void>;
   pastaPedida(): Promise<{ pasta: string | null }>;
   instalarAtualizacao(o: { url: string; sha256: string }): Promise<void>;
+  cofreBioEstado(o: { conta: string }): Promise<{ disponivel: boolean; ativo: boolean }>;
+  cofreBioGuardar(o: { conta: string; segredo: string }): Promise<{ valor: string }>;
+  cofreBioAbrir(o: { conta: string }): Promise<{ valor: string }>;
+  cofreBioApagar(o: { conta: string }): Promise<void>;
+  cofreProteger(o: { ligado: boolean }): Promise<void>;
 }
-const Vindex = registerPlugin<PluginVindex>("Vindex");
+export const Vindex = registerPlugin<PluginVindex>("Vindex");
 
 const indisponivel = async (): Promise<never> => { throw new Error("Esse recurso ainda não existe no Android."); };
 

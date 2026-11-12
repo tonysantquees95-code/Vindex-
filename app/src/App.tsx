@@ -18,6 +18,7 @@ import { Otimizar } from "./telas/Otimizar";
 import { Painel } from "./telas/Painel";
 import { RegrasTela } from "./telas/Regras";
 import { Seguranca } from "./telas/Seguranca";
+import { Cofre } from "./telas/Cofre";
 import type { InicioPeloMenu } from "./ponte";
 import { Aviso } from "./ui";
 import { LogoVivo } from "./logo";
@@ -29,10 +30,11 @@ const ABAS: readonly { id: string; rotulo: string; icone: NomeIcone }[] = [
   { id: "regras", rotulo: "Regras", icone: "regras" },
   { id: "descompactar", rotulo: "Descompactar", icone: "descompactar" },
   { id: "seguranca", rotulo: "Segurança", icone: "seguranca" },
+  { id: "cofre", rotulo: "Cofre", icone: "cofre" },
   { id: "ajustes", rotulo: "Ajustes", icone: "ajustes" },
   { id: "conta", rotulo: "Conta", icone: "conta" }
 ] as const;
-type IdAba = "painel" | "otimizar" | "arquivos" | "regras" | "descompactar" | "seguranca" | "ajustes" | "conta";
+type IdAba = "painel" | "otimizar" | "arquivos" | "regras" | "descompactar" | "seguranca" | "cofre" | "ajustes" | "conta";
 
 export function App() {
   const motor = useMotor();
@@ -174,6 +176,7 @@ export function App() {
     regras: <RegrasTela />,
     descompactar: <Descompactar inicio={inicio} aoUsarInicio={() => setInicio(null)} />,
     seguranca: <Seguranca />,
+    cofre: <Cofre sessao={sessao} />,
     ajustes: <AjustesTela aoAtualizar={atualizar} nova={nova} />,
     conta: sessao ? <MinhaConta sessao={sessao} aoAtualizar={definir} aoSair={() => { void sair(sessao.token); definir(null); }} /> : <Aviso>Modo demonstração: entre no app para ver sua conta.</Aviso>
   };
@@ -202,7 +205,7 @@ export function App() {
           <button className="ml-2 underline" onClick={() => { void motor.desfazer(arrumado).then(() => setArrumado([])); }}>Desfazer</button>
           <button className="ml-3 opacity-70 underline" onClick={() => setArrumado([])}>Ok</button></Aviso></div>
       )}
-      <main className="flex-1">{demo || liberado || aba === "conta" || aba === "ajustes" ? telas[aba] : null}</main>
+      <main className="flex-1">{demo || liberado || aba === "conta" || aba === "ajustes" || aba === "cofre" ? telas[aba] : null}</main>
 
       {saindo && <div role="status" className="fixed inset-x-0 bottom-24 z-50 mx-auto w-max max-w-[90%] rounded-full border border-white/10 bg-black/80 px-4 py-2 text-sm text-texto backdrop-blur">Toque em voltar de novo para sair</div>}
       {/* menu lateral (celular): abre por cima, sem ocupar a tela toda */}

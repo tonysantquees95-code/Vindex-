@@ -70,3 +70,11 @@ export async function sair(token: string): Promise<void> {
 export interface Pedido { id: string; comando: "otimizar" | "diagnostico" }
 export const buscarPedidos = (token: string, plataforma: string) => chamar<{ pedidos: Pedido[] }>("GET", `/vindex/fila?plataforma=${plataforma === "android" ? "android" : "windows"}`, undefined, token).then((r) => r.pedidos);
 export const responderPedido = (token: string, id: string, corpo: { ok: boolean; resumo: string; dados?: unknown }) => chamar("POST", `/vindex/pedidos/${id}/resultado`, corpo, token);
+
+// ------------------------------------------------------------------ cofre pessoal (o servidor só guarda o pacote já cifrado)
+export const cofreNuvem = {
+  estado: (token: string) => chamar<{ existe: boolean; versao: number; atualizado?: number }>("GET", "/cofre", undefined, token),
+  pacote: (token: string) => chamar<{ pacote: string; versao: number; atualizado: number }>("GET", "/cofre/pacote", undefined, token),
+  gravar: (token: string, pacote: string, base: number) => chamar<{ ok: boolean; versao: number }>("PUT", "/cofre", { pacote, base }, token),
+  apagar: (token: string) => chamar<{ ok: boolean }>("DELETE", "/cofre", { confirmar: "APAGAR" }, token)
+};
