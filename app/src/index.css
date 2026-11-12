@@ -1,8 +1,8 @@
 @import "tailwindcss";
 @theme {
-  --color-fundo: #070b14;
-  --color-painel: #0e1524;
-  --color-borda: #1c2740;
+  --color-fundo: #000000;
+  --color-painel: #0a0d14;
+  --color-borda: #1b2336;
   --color-texto: #e6ecf8;
   --color-suave: #8a97b3;
   --color-neon: #22d3ee;
@@ -12,7 +12,7 @@
   --color-erro: #f87171;
 }
 html, body, #raiz { min-height: 100dvh; }
-body { margin: 0; background: radial-gradient(1200px 600px at 80% -10%, #1b1140 0%, transparent 60%), var(--color-fundo); color: var(--color-texto); font-family: system-ui, "Segoe UI", sans-serif; }
+body { margin: 0; background: #000; color: var(--color-texto); font-family: system-ui, "Segoe UI", sans-serif; }
 .num { font-variant-numeric: tabular-nums; }
 .brilho { box-shadow: 0 0 24px -6px var(--color-neon); }
 button { cursor: pointer; }
@@ -21,3 +21,10 @@ button { cursor: pointer; }
 html[data-botoes="degrade"] .btn-primario { background: linear-gradient(135deg, var(--color-neon), var(--color-magenta)); color: var(--color-fundo); }
 html[data-botoes="contorno"] .btn-primario { background: transparent; color: var(--color-neon); border: 1.5px solid var(--color-neon); }
 html[data-botoes="contorno"] .btn-primario:hover { background: color-mix(in srgb, var(--color-neon) 14%, transparent); }
+
+/* V vivo: pulsa devagar, como o orbe da Vênus */
+.logo-vivo { animation: vivo 4.8s ease-in-out infinite; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--color-neon) 55%, transparent)); }
+.logo-vivo-brilho { transform-origin: 50% 48%; animation: brilho 4.8s ease-in-out infinite; }
+@keyframes vivo { 0%, 100% { transform: scale(0.97); } 50% { transform: scale(1.05); } }
+@keyframes brilho { 0%, 100% { opacity: .55; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .logo-vivo, .logo-vivo-brilho { animation: none; } }

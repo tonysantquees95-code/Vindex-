@@ -19,6 +19,7 @@ import { RegrasTela } from "./telas/Regras";
 import { Seguranca } from "./telas/Seguranca";
 import type { InicioPeloMenu } from "./ponte";
 import { Aviso } from "./ui";
+import { LogoVivo } from "./logo";
 
 const ABAS: readonly { id: string; rotulo: string; icone: NomeIcone }[] = [
   { id: "painel", rotulo: "Painel", icone: "painel" },
@@ -169,9 +170,9 @@ export function App() {
       <header className="mb-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <button onClick={() => setMenu(true)} aria-label="Abrir menu" className="grid size-11 flex-none place-items-center rounded-xl text-suave hover:text-texto sm:hidden"><Icone nome="menu" /></button>
-          <img src={`${import.meta.env.BASE_URL}vindex.png`} alt="" width={40} height={40} className="size-10 rounded-xl brilho" /><div><div className="text-lg font-semibold leading-tight tracking-wide">Vindex</div><div className="text-[11px] text-suave">Manager e Vault</div></div>
+          <LogoVivo tam={44} /><div><div className="text-lg font-semibold leading-tight tracking-wide">Vindex</div><div className="text-[11px] text-suave">Manager e Vault</div></div>
         </div>
-        <nav aria-label="Seções" className="hidden gap-1 sm:flex">{abas.map((a) => <button key={a.id} onClick={() => setAba(a.id as IdAba)} aria-current={aba === a.id ? "page" : undefined} className={`flex min-h-10 items-center gap-1.5 rounded-xl px-3 text-sm ${aba === a.id ? "bg-neon/15 text-neon" : "text-suave hover:text-texto"}`}><Icone nome={a.icone} tam={18} />{a.rotulo}</button>)}</nav>
+        <nav aria-label="Seções" className="hidden gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1 backdrop-blur sm:flex">{abas.map((a) => <button key={a.id} onClick={() => setAba(a.id as IdAba)} aria-current={aba === a.id ? "page" : undefined} className={`flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm transition ${aba === a.id ? "bg-neon/15 text-neon shadow-[0_0_18px_-6px_var(--color-neon)]" : "text-suave hover:text-texto"}`}><Icone nome={a.icone} tam={18} />{a.rotulo}</button>)}</nav>
         {sessao ? <button onClick={() => setAba("conta")} aria-label="Minha conta" className="grid size-10 flex-none place-items-center rounded-full bg-neon/15 text-sm font-semibold text-neon">{(sessao.nome || sessao.email || "V").trim().charAt(0).toUpperCase()}</button> : <span />}
       </header>
       {demo && <div className="mb-3"><Aviso>Modo demonstração: os números são de exemplo. Instale o Vindex no Windows ou no Android para ler o seu aparelho de verdade.</Aviso></div>}
@@ -191,7 +192,7 @@ export function App() {
       <div className={`fixed inset-0 z-40 sm:hidden ${menu ? "" : "pointer-events-none"}`} aria-hidden={!menu}>
         <div onClick={() => setMenu(false)} className={`absolute inset-0 bg-black/60 transition-opacity ${menu ? "opacity-100" : "opacity-0"}`} />
         <nav aria-label="Menu" className={`absolute inset-y-0 left-0 flex w-72 max-w-[82%] flex-col border-r border-borda bg-fundo p-3 pt-[max(12px,env(safe-area-inset-top))] shadow-2xl transition-transform duration-200 ${menu ? "translate-x-0" : "-translate-x-full"}`}>
-          <div className="mb-3 flex items-center gap-2 px-1"><img src={`${import.meta.env.BASE_URL}vindex.png`} alt="" width={36} height={36} className="size-9 rounded-xl" /><div className="flex-1 text-base font-semibold">Vindex</div>
+          <div className="mb-3 flex items-center gap-2 px-1"><LogoVivo tam={36} /><div className="flex-1 text-base font-semibold">Vindex</div>
             <button onClick={() => setMenu(false)} aria-label="Fechar menu" className="grid size-10 place-items-center rounded-xl text-suave"><Icone nome="fechar" tam={20} /></button></div>
           <div className="flex-1 space-y-1 overflow-y-auto">{abas.map((a) => (
             <button key={a.id} onClick={() => ir2(a.id)} aria-current={aba === a.id ? "page" : undefined} className={`flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] ${aba === a.id ? "bg-neon/15 text-neon" : "text-texto hover:bg-white/5"}`}><Icone nome={a.icone} />{a.rotulo}</button>

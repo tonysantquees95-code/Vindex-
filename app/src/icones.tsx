@@ -13,7 +13,7 @@ function Svg({ children, tam = 24, style, ...r }: SVGProps<SVGSVGElement> & { ta
 }
 const L = { fill: "none" } as const;
 
-export type NomeIcone = "painel" | "otimizar" | "arquivos" | "regras" | "descompactar" | "seguranca" | "conta" | "ajustes" | "menu" | "fechar" | "atualizar" | "rede";
+export type NomeIcone = "painel" | "otimizar" | "arquivos" | "regras" | "descompactar" | "seguranca" | "conta" | "ajustes" | "menu" | "fechar" | "atualizar" | "rede" | "pasta" | "recentes" | "imagens" | "videos" | "audios" | "documentos" | "planilhas" | "apresentacoes" | "compactados" | "instaladores" | "codigo" | "outros";
 
 const DESENHOS: Record<NomeIcone, ReactElement> = {
   painel: <><rect x="3.5" y="3.5" width="7" height="7" rx="2" /><rect x="13.5" y="3.5" width="7" height="4.5" rx="2" {...L} /><rect x="13.5" y="11" width="7" height="9.5" rx="2" /><rect x="3.5" y="13.5" width="7" height="7" rx="2" {...L} /></>,
@@ -27,6 +27,18 @@ const DESENHOS: Record<NomeIcone, ReactElement> = {
   menu: <path d="M4 7h16M4 12h16M4 17h10" {...L} />,
   fechar: <path d="M6 6l12 12M18 6 6 18" {...L} />,
   atualizar: <g {...L}><path d="M20 12a8 8 0 1 1-2.6-5.9" /><path d="M20 4v4.6h-4.6" /></g>,
+  pasta: <path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.2h7a2 2 0 0 1 2 2V17.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />,
+  recentes: <g {...L}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></g>,
+  imagens: <g><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.6" {...L} /><path d="m4.5 17 4.5-4.2 3.2 3 2.6-2.4 4.7 4.3" {...L} /></g>,
+  videos: <g><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" /><path d="m10.5 9.4 4.2 2.6-4.2 2.6z" {...L} /></g>,
+  audios: <g {...L}><path d="M9 17.5V6.5l9-2v11" /><circle cx="6.8" cy="17.5" r="2.2" /><circle cx="15.8" cy="15.5" r="2.2" /></g>,
+  documentos: <g><path d="M6.5 3.5h7l4.5 4.5v11a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 19V5a1.5 1.5 0 0 1 1.5-1.5z" /><path d="M13.5 3.5V8H18M8.5 12.5h7M8.5 15.8h5" {...L} /></g>,
+  planilhas: <g><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M3.5 14.8h17M9.5 4.5v15" {...L} /></g>,
+  apresentacoes: <g><rect x="3.5" y="4.5" width="17" height="11" rx="2" /><path d="M12 15.5v4M8.5 19.5h7M8 12l2.6-2.6 2 2 3-3.4" {...L} /></g>,
+  compactados: <g><path d="M5 4.5h14v15H5z" /><path d="M12 4.5v3M12 9.5v1.5M12 13v1.5M10.2 16.5h3.6v3h-3.6z" {...L} /></g>,
+  instaladores: <g><path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z" /><path d="M12 9v6M9.4 12.6 12 15.2l2.6-2.6" {...L} /></g>,
+  codigo: <g {...L}><path d="m9 7-5 5 5 5M15 7l5 5-5 5" /></g>,
+  outros: <g><path d="M6.5 3.5h7l4.5 4.5v11a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 19V5a1.5 1.5 0 0 1 1.5-1.5z" /></g>,
   rede: <g {...L}><path d="M3.5 9.5a12 12 0 0 1 17 0M6.5 12.8a8 8 0 0 1 11 0M9.4 16a4 4 0 0 1 5.2 0" /><circle cx="12" cy="19" r="1" /></g>,
 };
 

@@ -5,7 +5,7 @@ const COR = { ok: "#34d399", aviso: "#fbbf24", erro: "#f87171" } as const;
 
 export function Cartao({ titulo, acao, children, className = "" }: { titulo?: string; acao?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={`rounded-2xl border border-borda bg-painel/80 p-4 backdrop-blur ${className}`}>
+    <section className={`rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.015] p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset] backdrop-blur ${className}`}>
       {(titulo || acao) && (
         <header className="mb-3 flex items-center justify-between gap-2">
           {titulo && <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-suave">{titulo}</h2>}

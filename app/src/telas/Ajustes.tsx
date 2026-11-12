@@ -24,6 +24,8 @@ export function AjustesTela({ aoAtualizar, nova }: { aoAtualizar: (v: InfoVersao
   const [erro, setErro] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const app = motor.plataforma === "android" ? "vindex-android" : "vindex-windows";
+  const [parte, setParte] = useState<"geral" | "personalizar">(() => { try { return sessionStorage.getItem("vindex.ajustes.parte") === "personalizar" ? "personalizar" : "geral"; } catch { return "geral"; } });
+  const trocar = (p: "geral" | "personalizar") => { setParte(p); try { sessionStorage.setItem("vindex.ajustes.parte", p); } catch { /* ok */ } };
 
   async function verificar() {
     setOcupado(true); setMsg(""); setErro("");
@@ -37,7 +39,12 @@ export function AjustesTela({ aoAtualizar, nova }: { aoAtualizar: (v: InfoVersao
 
   return (
     <div className="space-y-4">
-      <Cartao titulo="Aparência" acao={<button type="button" onClick={() => definir({ cor: AJUSTES_PADRAO.cor, corPersonalizada: AJUSTES_PADRAO.corPersonalizada, formato: AJUSTES_PADRAO.formato, estilo: AJUSTES_PADRAO.estilo, icones: AJUSTES_PADRAO.icones })} className="min-h-9 rounded-lg px-2 text-xs text-suave hover:text-texto">Restaurar padrão</button>}>
+      <div role="tablist" aria-label="Ajustes" className="flex gap-2">
+        {([["geral", "Geral"], ["personalizar", "Personalizar"]] as const).map(([id, r]) => (
+          <button key={id} role="tab" aria-selected={parte === id} onClick={() => trocar(id)} className={`min-h-10 rounded-full px-5 text-sm transition ${parte === id ? "bg-neon/15 text-neon" : "border border-borda text-suave"}`}>{r}</button>
+        ))}
+      </div>
+      {parte === "personalizar" && <Cartao titulo="Personalizar o Vindex" acao={<button type="button" onClick={() => definir({ cor: AJUSTES_PADRAO.cor, corPersonalizada: AJUSTES_PADRAO.corPersonalizada, formato: AJUSTES_PADRAO.formato, estilo: AJUSTES_PADRAO.estilo, icones: AJUSTES_PADRAO.icones })} className="min-h-9 rounded-lg px-2 text-xs text-suave hover:text-texto">Restaurar padrão</button>}>
         <Previa />
 
         <Secao titulo="Cor do app" dica="Muda os destaques, botões e brilhos em tudo.">
@@ -87,8 +94,9 @@ export function AjustesTela({ aoAtualizar, nova }: { aoAtualizar: (v: InfoVersao
             </button>
           ))}</div>
         </Secao>
-      </Cartao>
+      </Cartao>}
 
+      {parte === "geral" && <>
       <Cartao titulo="Atualizações">
         <p className="text-sm">Versão instalada: <b className="num">{BUILD ? `1.${BUILD}` : "desenvolvimento"}</b></p>
         <div className="mt-3 space-y-3">
@@ -110,6 +118,7 @@ export function AjustesTela({ aoAtualizar, nova }: { aoAtualizar: (v: InfoVersao
       {motor.recursos.permissoes && (
         <Cartao titulo="Permissões do Android">{lista ? <ListaDePermissoes lista={lista} pedir={(id) => void pedir(id)} /> : <p className="text-sm text-suave">Conferindo…</p>}</Cartao>
       )}
+      </>}
     </div>
   );
 }

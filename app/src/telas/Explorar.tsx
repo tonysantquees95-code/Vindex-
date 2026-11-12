@@ -3,16 +3,17 @@ import { useMotor } from "../estado";
 import { bytes, nomeDoArquivo } from "../formato";
 import type { Armazenamento, ItemDePasta, Movimento, PastaConhecida } from "../ponte";
 import { Aviso, Botao, Cartao } from "../ui";
+import { Icone, type NomeIcone } from "../icones";
 
-const GLIFO: Record<string, string> = { pasta: "📁", imagens: "🖼️", videos: "🎬", audios: "🎵", documentos: "📄", planilhas: "📊", apresentacoes: "📽️", compactados: "🗜️", instaladores: "📦", codigo: "🧩", outros: "📎" };
-const COLECOES = [
-  { id: "recentes", rotulo: "Recentes", glifo: "🕘" },
-  { id: "imagens", rotulo: "Fotos", glifo: "🖼️" },
-  { id: "audios", rotulo: "Música", glifo: "🎵" },
-  { id: "videos", rotulo: "Vídeos", glifo: "🎬" },
-  { id: "documentos", rotulo: "Documentos", glifo: "📄" },
-  { id: "instaladores", rotulo: "Aplicativos e instaladores", glifo: "📦" },
-  { id: "compactados", rotulo: "Compactados", glifo: "🗜️" }
+const TIPO_ICONE = (c: string): NomeIcone => (["pasta", "imagens", "videos", "audios", "documentos", "planilhas", "apresentacoes", "compactados", "instaladores", "codigo"].includes(c) ? (c as NomeIcone) : "outros");
+const COLECOES: { id: string; rotulo: string; icone: NomeIcone }[] = [
+  { id: "recentes", rotulo: "Recentes", icone: "recentes" },
+  { id: "imagens", rotulo: "Fotos", icone: "imagens" },
+  { id: "audios", rotulo: "Música", icone: "audios" },
+  { id: "videos", rotulo: "Vídeos", icone: "videos" },
+  { id: "documentos", rotulo: "Documentos", icone: "documentos" },
+  { id: "instaladores", rotulo: "Aplicativos e instaladores", icone: "instaladores" },
+  { id: "compactados", rotulo: "Compactados", icone: "compactados" }
 ];
 type Vista = { tipo: "inicio" } | { tipo: "pasta"; caminho: string } | { tipo: "colecao"; id: string; rotulo: string } | { tipo: "busca"; caminho: string; texto: string };
 
@@ -121,11 +122,11 @@ export function Explorar() {
         </Cartao>
         {favoritos.length > 0 && (
           <Cartao titulo="Favoritos">
-            <ul className="grid gap-2 sm:grid-cols-2">{favoritos.map((f) => <li key={f.id}><button className="flex w-full items-center gap-3 rounded-xl border border-borda bg-white/5 px-3 py-3 text-left text-sm hover:bg-white/10" onClick={() => setVista({ tipo: "pasta", caminho: f.caminho })}>📁 {f.rotulo}</button></li>)}</ul>
+            <ul className="grid gap-2 sm:grid-cols-2">{favoritos.map((f) => <li key={f.id}><button className="flex w-full items-center gap-3 rounded-xl border border-borda bg-white/5 px-3 py-3 text-left text-sm hover:bg-white/10" onClick={() => setVista({ tipo: "pasta", caminho: f.caminho })}><span className="text-neon"><Icone nome="pasta" tam={20} /></span>{f.rotulo}</button></li>)}</ul>
           </Cartao>
         )}
         <Cartao titulo="Coleções">
-          <ul className="grid gap-2 sm:grid-cols-2">{COLECOES.map((c) => <li key={c.id}><button className="flex w-full items-center gap-3 rounded-xl border border-borda bg-white/5 px-3 py-3 text-left text-sm hover:bg-white/10" onClick={() => setVista({ tipo: "colecao", id: c.id, rotulo: c.rotulo })}>{c.glifo} {c.rotulo}</button></li>)}</ul>
+          <ul className="grid gap-2 sm:grid-cols-2">{COLECOES.map((c) => <li key={c.id}><button className="flex w-full items-center gap-3 rounded-xl border border-borda bg-white/5 px-3 py-3 text-left text-sm hover:bg-white/10" onClick={() => setVista({ tipo: "colecao", id: c.id, rotulo: c.rotulo })}><span className="text-neon"><Icone nome={c.icone} tam={20} /></span>{c.rotulo}</button></li>)}</ul>
         </Cartao>
       </div>
     );
@@ -175,7 +176,7 @@ export function Explorar() {
           <li key={i.caminho} className="flex items-center gap-2 px-2 py-1.5 hover:bg-white/5">
             <input type="checkbox" aria-label={`Marcar ${i.nome}`} className="h-5 w-5 flex-none accent-[#2ee6ff]" checked={marcados.has(i.caminho)} onChange={() => alternar(i.caminho)} />
             <button className="flex min-h-12 min-w-0 flex-1 items-center gap-3 text-left" onClick={() => abrir(i)}>
-              <span className="text-xl" aria-hidden="true">{GLIFO[i.categoria] ?? "📎"}</span>
+              <span className="text-neon" aria-hidden="true"><Icone nome={i.pasta ? "pasta" : TIPO_ICONE(i.categoria)} tam={22} /></span>
               <span className="min-w-0"><span className="block truncate text-sm">{i.nome}</span>
                 <span className="num block text-xs text-suave">{i.pasta ? `${i.itens} ${i.itens === 1 ? "item" : "itens"}` : bytes(i.bytes)}{i.modificado ? ` · ${quando(i.modificado)}` : ""}</span></span>
             </button>
