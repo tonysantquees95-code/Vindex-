@@ -113,7 +113,12 @@ jobs:
           cp ../android/src/*.java $D/
           # descompactar e compactar dentro do app: ZIP, 7z, RAR, TAR, GZ, BZ2, XZ
           sed -i "0,/dependencies {/s#dependencies {#dependencies {\n    implementation 'org.apache.commons:commons-compress:1.26.2'\n    implementation 'org.tukaani:xz:1.9'\n    implementation 'com.github.junrar:junrar:7.5.5'#" android/app/build.gradle
-          grep -n "commons-compress\|junrar" android/app/build.gradle
+          # RAR 5 e mais novos: motor do 7-Zip (a biblioteca vem do JitPack)
+          sed -i "0,/dependencies {/s#dependencies {#dependencies {\n    implementation 'com.github.omicronapps:7-Zip-JBinding-4Android:Release-16.02-2.02'#" android/app/build.gradle
+          sed -i "s#mavenCentral()#mavenCentral()\n        maven { url 'https://jitpack.io' }#g" android/build.gradle
+          if [ -f android/settings.gradle ]; then sed -i "s#mavenCentral()#mavenCentral()\n        maven { url 'https://jitpack.io' }#g" android/settings.gradle; fi
+          grep -n "commons-compress\|junrar\|JBinding" android/app/build.gradle
+          grep -n "jitpack" android/build.gradle android/settings.gradle || true
           # permissões: arquivos (liberada pela pessoa), leitura do aparelho, rede, apps instalados, encerrar apps em segundo plano e instalar a própria atualização
           PERMS='<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />\n    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\n    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" xmlns:tools="http://schemas.android.com/tools" tools:ignore="ProtectedPermissions" />'
           sed -i "s#<application#$PERMS\n    <application#" android/app/src/main/AndroidManifest.xml

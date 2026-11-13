@@ -121,8 +121,21 @@ public final class Compactador {
                     break;
                 }
                 case "rar": {
+                    boolean ok = false;
+                    Throwable erroAntigo = null;
                     try (Archive a = senha == null || senha.isEmpty() ? new Archive(f) : new Archive(f, senha)) {
                         for (FileHeader h : a.getFileHeaders()) { if (!h.isDirectory()) { soma[0]++; soma[1] += Math.max(0, h.getFullUnpackSize()); if (nomes.size() < 300) nomes.add(h.getFileName().replace('\\', '/')); } }
+                        ok = true;
+                    } catch (Throwable t) { erroAntigo = t; }
+                    if (!ok) { // RAR 5 e outros que o leitor antigo não abre: motor do 7-Zip
+                        soma[0] = 0; soma[1] = 0; nomes.clear();
+                        try {
+                            Rar7z.percorrer(f, senha, new Rar7z.Item() {
+                                public void item(String nome, boolean pasta, long tam, net.sf.sevenzipjbinding.simple.ISimpleInArchiveItem it) {
+                                    if (!pasta) { soma[0]++; soma[1] += Math.max(0, tam); if (nomes.size() < 300) nomes.add(nome.replace('\\', '/')); }
+                                }
+                            });
+                        } catch (Throwable t2) { throw (t2 instanceof UnsatisfiedLinkError || t2 instanceof NoClassDefFoundError) && erroAntigo != null ? erroAntigo : t2; }
                     }
                     break;
                 }
@@ -230,6 +243,9 @@ public final class Compactador {
                     break;
                 }
                 case "rar": {
+                    boolean feito = false;
+                    Throwable erroAntigo = null;
+                    long feitosAntes = feitos; int criadosAntes = criados.size();
                     try (Archive a = senha == null || senha.isEmpty() ? new Archive(f) : new Archive(f, senha)) {
                         List<FileHeader> hs = a.getFileHeaders();
                         for (FileHeader h : hs) if (!h.isDirectory()) total += Math.max(0, h.getFullUnpackSize());
@@ -246,6 +262,35 @@ public final class Compactador {
                             cont[0]++; cont[1] += alvo.length();
                             if (cancelar) throw new IOException("Cancelado.");
                         }
+                        feito = true;
+                    } catch (Throwable t) {
+                        if (t instanceof IOException && "Cancelado.".equals(t.getMessage())) throw t;
+                        erroAntigo = t;
+                    }
+                    if (!feito) { // RAR 5 e outros: refaz com o motor do 7-Zip
+                        for (int k = criados.size() - 1; k >= criadosAntes; k--) { criados.get(k).delete(); criados.remove(k); }
+                        cont[0] = 0; cont[1] = 0; feitos = feitosAntes; total = 0;
+                        final long[] tot = new long[1];
+                        try {
+                            Rar7z.percorrer(f, senha, new Rar7z.Item() {
+                                public void item(String nome, boolean pasta, long tam, net.sf.sevenzipjbinding.simple.ISimpleInArchiveItem it) { if (!pasta) tot[0] += Math.max(0, tam); }
+                            });
+                            total = tot[0];
+                            final File dest = destino; final String sn = senha;
+                            Rar7z.percorrer(f, senha, new Rar7z.Item() {
+                                public void item(String nomeBruto, boolean pasta, long tam, net.sf.sevenzipjbinding.simple.ISimpleInArchiveItem it) throws Exception {
+                                    String nome = nomeBruto.replace('\\', '/');
+                                    File alvo = alvoSeguro(dest, nome);
+                                    if (alvo == null) { pulados.add(nome); return; }
+                                    if (pasta) { alvo.mkdirs(); return; }
+                                    alvo = unico(alvo); criados.add(alvo); atual = nome;
+                                    File pai = alvo.getParentFile();
+                                    if (pai != null) pai.mkdirs();
+                                    Rar7z.extrair(it, alvo, sn);
+                                    cont[0]++; cont[1] += alvo.length();
+                                }
+                            });
+                        } catch (Throwable t2) { throw (t2 instanceof UnsatisfiedLinkError || t2 instanceof NoClassDefFoundError) && erroAntigo != null ? erroAntigo : t2; }
                     }
                     break;
                 }
