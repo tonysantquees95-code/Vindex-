@@ -26,6 +26,10 @@ public class MainActivity extends BridgeActivity {
         if (i == null) return;
         String p = i.getStringExtra("vindex_pasta");
         if (p != null && p.startsWith("/")) pastaPedida = p;
+        // outro app (navegador, etc.) pediu "abrir downloads": abre direto na pasta Download
+        if ("android.intent.action.VIEW_DOWNLOADS".equals(i.getAction())) {
+            pastaPedida = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
+        }
     }
 
     @Override
@@ -71,5 +75,24 @@ public class MainActivity extends BridgeActivity {
             return WindowInsetsCompat.CONSUMED;
         });
         ViewCompat.requestApplyInsets(raiz);
+        raiz.postDelayed(new Runnable() { public void run() { perguntarPrincipal(); } }, 2500);
+    }
+
+    /** Só na primeira abertura: pergunta se o Vindex deve ser o gerenciador principal (abre os downloads e as pastas de outros apps). */
+    private void perguntarPrincipal() {
+        if (isFinishing()) return;
+        android.content.SharedPreferences sp = getSharedPreferences("vindex_principal", MODE_PRIVATE);
+        if (sp.getBoolean("perguntou", false)) return;
+        sp.edit().putBoolean("perguntou", true).apply();
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Usar o Vindex como gerenciador principal?")
+            .setMessage("Quando um app pedir para abrir os downloads ou uma pasta, o Vindex abre. Na próxima tela escolha o Vindex e toque em \"Sempre\".")
+            .setPositiveButton("Sim, usar", new android.content.DialogInterface.OnClickListener() {
+                public void onClick(android.content.DialogInterface d, int w) {
+                    try { startActivity(new Intent("android.intent.action.VIEW_DOWNLOADS").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignora) { }
+                }
+            })
+            .setNegativeButton("Agora não", null)
+            .show();
     }
 }
