@@ -50,7 +50,7 @@ export function motorAndroid(): Motor {
     escolherArquivo: async () => null,
     listarCompactado: (origem, senha) => c("arquivo_listar", { origem, senha: senha ?? "" }),
     pastaSugerida: async (origem) => pastaDeExtracao(origem),
-    extrair: (origem, destino, senha) => c("arquivo_extrair", { origem, destino, senha: senha ?? "" }),
+    extrair: (origem, destino, senha, selecionados) => c("arquivo_extrair", { origem, destino, senha: senha ?? "", ...(selecionados ? { selecionados } : {}) }),
     compactar: (origens, destino, formato) => c("arquivo_compactar", { origens, destino, formato }),
     progressoArquivo: () => c("arquivo_progresso"),
     cancelarArquivo: async () => { await c("arquivo_cancelar"); },

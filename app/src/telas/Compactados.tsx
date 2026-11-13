@@ -41,17 +41,19 @@ export function PainelCompactado({ caminho, aoFechar, aoExtrair, direto = false 
   const [erro, setErro] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [resultado, setResultado] = useState<ResultadoExtracao | null>(null);
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [busca, setBusca] = useState("");
   const andamento = useAndamento(ocupado);
   const iniciou = useRef(false);
 
   const ler = useCallback(async (s = senha) => {
     setErro(""); setPedeSenha(false);
-    try { setConteudo(await motor.listarCompactado(caminho, s)); } catch (e) { const m = texto(e); setErro(m); if (/senha/i.test(m)) setPedeSenha(true); }
+    try { const c = await motor.listarCompactado(caminho, s); setConteudo(c); setMarcados(new Set(c.nomes)); } catch (e) { const m = texto(e); setErro(m); if (/senha/i.test(m)) setPedeSenha(true); }
   }, [motor, caminho, senha]);
 
-  const extrair = useCallback(async (dest: string, s = senha) => {
+  const extrair = useCallback(async (dest: string, s = senha, escolhidos?: string[]) => {
     setOcupado(true); setErro(""); setResultado(null);
-    try { const r = await motor.extrair(caminho, dest, s); setResultado(r); aoExtrair?.(r.destino); }
+    try { const r = await motor.extrair(caminho, dest, s, escolhidos); setResultado(r); aoExtrair?.(r.destino); }
     catch (e) { const m = texto(e); setErro(m); if (/senha/i.test(m)) setPedeSenha(true); }
     setOcupado(false);
   }, [motor, caminho, senha, aoExtrair]);
@@ -68,9 +70,25 @@ export function PainelCompactado({ caminho, aoFechar, aoExtrair, direto = false 
         {conteudo && (
           <div>
             <p className="text-sm text-suave">{conteudo.itens} {conteudo.itens === 1 ? "arquivo" : "arquivos"} · {bytes(conteudo.bytes)} descompactado · {conteudo.formato.toUpperCase()}</p>
-            <ul className="mt-2 max-h-36 space-y-0.5 overflow-auto rounded-xl bg-black/20 p-2 text-xs text-suave">
-              {conteudo.nomes.slice(0, 80).map((n) => <li key={n} className="break-all">{n}</li>)}
-              {conteudo.itens > Math.min(80, conteudo.nomes.length) && <li>…e mais {conteudo.itens - Math.min(80, conteudo.nomes.length)}</li>}
+            <div className="mt-2 flex gap-2">
+              <input className={campo} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar no arquivo…" aria-label="Buscar no arquivo" />
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Botao onClick={() => setMarcados(new Set(conteudo.nomes))}>Marcar tudo</Botao>
+              <Botao onClick={() => setMarcados(new Set())}>Desmarcar tudo</Botao>
+              <span className="self-center text-xs text-suave">{marcados.size} de {conteudo.nomes.length} marcados</span>
+            </div>
+            <ul className="mt-2 max-h-72 overflow-auto rounded-xl bg-black/20 p-1 text-sm">
+              {conteudo.nomes.map((n, i) => ({ n, i })).filter(({ n }) => !busca.trim() || n.toLowerCase().includes(busca.trim().toLowerCase())).slice(0, 400).map(({ n, i }) => (
+                <li key={n}>
+                  <label className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 hover:bg-white/5">
+                    <input type="checkbox" className="h-4 w-4 shrink-0 accent-neon" checked={marcados.has(n)} onChange={() => setMarcados((m) => { const novo = new Set(m); if (novo.has(n)) novo.delete(n); else novo.add(n); return novo; })} />
+                    <span className="min-w-0 flex-1 break-all text-xs">{n}</span>
+                    {conteudo.tamanhos?.[i] !== undefined && <span className="shrink-0 text-xs text-suave">{bytes(conteudo.tamanhos[i])}</span>}
+                  </label>
+                </li>
+              ))}
+              {conteudo.itens > conteudo.nomes.length && <li className="px-2 py-1 text-xs text-suave">…lista cortada em {conteudo.nomes.length} de {conteudo.itens} itens (use “Extrair tudo”).</li>}
             </ul>
           </div>
         )}
@@ -82,10 +100,18 @@ export function PainelCompactado({ caminho, aoFechar, aoExtrair, direto = false 
         )}
         {!ocupado && !resultado && conteudo && (
           <div className="space-y-2">
-            <input className={campo} value={destino} onChange={(e) => setDestino(e.target.value)} aria-label="Pasta de destino" />
+            <div className="flex gap-2">
+              <input className={campo} value={destino} onChange={(e) => setDestino(e.target.value)} aria-label="Pasta de destino" />
+              <Botao onClick={async () => { const p = await motor.escolherPasta(); if (p) setDestino(p); }}>Escolher…</Botao>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <button className="rounded-full border border-borda px-3 py-1.5 text-suave" onClick={() => setDestino(pastaDeExtracao(caminho))}>Pasta com o nome do arquivo</button>
+              <button className="rounded-full border border-borda px-3 py-1.5 text-suave" onClick={() => setDestino(pastaDoArquivo(caminho))}>Mesma pasta do arquivo</button>
+            </div>
             <div className="flex flex-wrap gap-2">
-              <Botao variante="primario" disabled={!destino.trim()} onClick={() => void extrair(destino)}>Extrair aqui</Botao>
-              <Botao onClick={async () => { const p = await motor.escolherPasta(); if (p) { setDestino(p); await extrair(p); } }}>Extrair em outra pasta…</Botao>
+              <Botao variante="primario" disabled={!destino.trim() || marcados.size === 0} onClick={() => void extrair(destino, senha, marcados.size === conteudo.nomes.length ? undefined : Array.from(marcados))}>
+                {marcados.size === conteudo.nomes.length ? "Extrair tudo" : `Extrair marcados (${marcados.size})`}
+              </Botao>
               {motor.recursos.abrirArquivos && <Botao onClick={() => void motor.abrirArquivo(caminho).catch((e) => setErro(texto(e)))}>Abrir com outro app</Botao>}
             </div>
             <p className="text-xs text-suave">Nada é sobrescrito: se já existir um arquivo com o mesmo nome, o novo ganha “(1)”.</p>

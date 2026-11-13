@@ -104,19 +104,20 @@ public final class Compactador {
         if (fmt.isEmpty()) throw new Exception("Não conheço este formato de arquivo.");
         if (f.length() == 0) throw new Exception("O arquivo está vazio (0 B). O download não terminou: baixe de novo.");
         List<String> nomes = new ArrayList<String>();
+        final List<Long> tams = new ArrayList<Long>();
         long[] soma = new long[2]; // itens, bytes
         try {
             switch (fmt) {
                 case "zip": {
                     try (ZipFile z = new ZipFile(f)) {
                         Enumeration<ZipArchiveEntry> en = z.getEntries();
-                        while (en.hasMoreElements()) { ZipArchiveEntry e = en.nextElement(); if (!e.isDirectory()) { soma[0]++; soma[1] += Math.max(0, e.getSize()); if (nomes.size() < 300) nomes.add(e.getName()); } }
+                        while (en.hasMoreElements()) { ZipArchiveEntry e = en.nextElement(); if (!e.isDirectory()) { soma[0]++; soma[1] += Math.max(0, e.getSize()); if (nomes.size() < 5000) { nomes.add(e.getName()); tams.add(Math.max(0, e.getSize())); } } }
                     }
                     break;
                 }
                 case "7z": {
                     try (SevenZFile s = senha == null || senha.isEmpty() ? new SevenZFile(f) : new SevenZFile(f, senha.toCharArray())) {
-                        for (SevenZArchiveEntry e : s.getEntries()) { if (!e.isDirectory()) { soma[0]++; soma[1] += Math.max(0, e.getSize()); if (nomes.size() < 300) nomes.add(e.getName()); } }
+                        for (SevenZArchiveEntry e : s.getEntries()) { if (!e.isDirectory()) { soma[0]++; soma[1] += Math.max(0, e.getSize()); if (nomes.size() < 5000) { nomes.add(e.getName()); tams.add(Math.max(0, e.getSize())); } } }
                     }
                     break;
                 }
@@ -124,15 +125,15 @@ public final class Compactador {
                     boolean ok = false;
                     Throwable erroAntigo = null;
                     try (Archive a = senha == null || senha.isEmpty() ? new Archive(f) : new Archive(f, senha)) {
-                        for (FileHeader h : a.getFileHeaders()) { if (!h.isDirectory()) { soma[0]++; soma[1] += Math.max(0, h.getFullUnpackSize()); if (nomes.size() < 300) nomes.add(h.getFileName().replace('\\', '/')); } }
+                        for (FileHeader h : a.getFileHeaders()) { if (!h.isDirectory()) { soma[0]++; soma[1] += Math.max(0, h.getFullUnpackSize()); if (nomes.size() < 5000) { nomes.add(h.getFileName().replace('\\', '/')); tams.add(Math.max(0, h.getFullUnpackSize())); } } }
                         ok = true;
                     } catch (Throwable t) { erroAntigo = t; }
                     if (!ok) { // RAR 5 e outros que o leitor antigo não abre: motor do 7-Zip
-                        soma[0] = 0; soma[1] = 0; nomes.clear();
+                        soma[0] = 0; soma[1] = 0; nomes.clear(); tams.clear();
                         try {
                             Rar7z.percorrer(f, senha, new Rar7z.Item() {
                                 public void item(String nome, boolean pasta, long tam, net.sf.sevenzipjbinding.simple.ISimpleInArchiveItem it) {
-                                    if (!pasta) { soma[0]++; soma[1] += Math.max(0, tam); if (nomes.size() < 300) nomes.add(nome.replace('\\', '/')); }
+                                    if (!pasta) { soma[0]++; soma[1] += Math.max(0, tam); if (nomes.size() < 5000) { nomes.add(nome.replace('\\', '/')); tams.add(Math.max(0, tam)); } }
                                 }
                             });
                         } catch (Throwable t2) { throw (t2 instanceof UnsatisfiedLinkError || t2 instanceof NoClassDefFoundError) && erroAntigo != null ? erroAntigo : t2; }
@@ -141,20 +142,22 @@ public final class Compactador {
                 }
                 case "gz": case "bz2": case "xz": {
                     soma[0] = 1; soma[1] = f.length();
-                    nomes.add(semExtensao(f.getName()));
+                    nomes.add(semExtensao(f.getName())); tams.add(f.length());
                     break;
                 }
                 default: { // tar e tar.*
                     try (TarArchiveInputStream t = new TarArchiveInputStream(abrirTar(f, fmt, false))) {
                         TarArchiveEntry e;
-                        while ((e = t.getNextEntry()) != null) { if (!e.isDirectory()) { soma[0]++; soma[1] += Math.max(0, e.getSize()); if (nomes.size() < 300) nomes.add(e.getName()); } }
+                        while ((e = t.getNextEntry()) != null) { if (!e.isDirectory()) { soma[0]++; soma[1] += Math.max(0, e.getSize()); if (nomes.size() < 5000) { nomes.add(e.getName()); tams.add(Math.max(0, e.getSize())); } } }
                     }
                 }
             }
         } catch (Throwable e) { throw new Exception(msgDe(e)); }
         JSONArray n = new JSONArray();
         for (String s : nomes) n.put(s);
-        return new JSONObject().put("itens", soma[0]).put("bytes", soma[1]).put("nomes", n).put("formato", fmt);
+        JSONArray tm = new JSONArray();
+        for (Long t : tams) tm.put(t.longValue());
+        return new JSONObject().put("itens", soma[0]).put("bytes", soma[1]).put("nomes", n).put("tamanhos", tm).put("formato", fmt);
     }
 
     private static InputStream abrirTar(File f, String fmt, boolean contar) throws IOException {
@@ -193,7 +196,24 @@ public final class Compactador {
         }
     }
 
+    /** Nomes marcados para extrair (null = tudo). Vale só durante uma extração. */
+    private static volatile java.util.Set<String> filtro = null;
+
+    private static boolean quer(String nome) {
+        java.util.Set<String> f = filtro;
+        return f == null || f.contains(nome.replace('\\', '/'));
+    }
+
     public static JSONObject extrair(File f, File destino, String senha) throws Exception {
+        return extrair(f, destino, senha, null);
+    }
+
+    public static JSONObject extrair(File f, File destino, String senha, java.util.Set<String> so) throws Exception {
+        filtro = so;
+        try { return extrairTudo(f, destino, senha); } finally { filtro = null; }
+    }
+
+    private static JSONObject extrairTudo(File f, File destino, String senha) throws Exception {
         String fmt = formato(f.getName());
         if (fmt.isEmpty()) throw new Exception("Não conheço este formato de arquivo.");
         cancelar = false; fase = "extraindo"; atual = f.getName(); feitos = 0; total = 0;
@@ -211,6 +231,7 @@ public final class Compactador {
                         while (en.hasMoreElements()) { ZipArchiveEntry e = en.nextElement(); lista.add(e); if (!e.isDirectory()) total += Math.max(0, e.getSize()); }
                         for (ZipArchiveEntry e : lista) {
                             File alvo = alvoSeguro(destino, e.getName());
+                            if (!quer(e.getName())) continue;
                             if (alvo == null) { pulados.add(e.getName()); continue; }
                             if (e.isDirectory()) { alvo.mkdirs(); continue; }
                             if (!z.canReadEntryData(e)) throw new Exception("Este ZIP é protegido por senha ou usa um recurso que ainda não consigo abrir.");
@@ -228,6 +249,7 @@ public final class Compactador {
                         byte[] b = new byte[BUF];
                         while ((e = s.getNextEntry()) != null) {
                             File alvo = alvoSeguro(destino, e.getName());
+                            if (!quer(e.getName())) continue;
                             if (alvo == null) { pulados.add(e.getName()); continue; }
                             if (e.isDirectory()) { alvo.mkdirs(); continue; }
                             alvo = unico(alvo); criados.add(alvo); atual = e.getName();
@@ -252,6 +274,7 @@ public final class Compactador {
                         for (FileHeader h : hs) {
                             String nome = h.getFileName().replace('\\', '/');
                             File alvo = alvoSeguro(destino, nome);
+                            if (!quer(nome)) continue;
                             if (alvo == null) { pulados.add(nome); continue; }
                             if (h.isDirectory()) { alvo.mkdirs(); continue; }
                             alvo = unico(alvo); criados.add(alvo); atual = nome;
@@ -281,6 +304,7 @@ public final class Compactador {
                                 public void item(String nomeBruto, boolean pasta, long tam, net.sf.sevenzipjbinding.simple.ISimpleInArchiveItem it) throws Exception {
                                     String nome = nomeBruto.replace('\\', '/');
                                     File alvo = alvoSeguro(dest, nome);
+                                    if (!quer(nome)) return;
                                     if (alvo == null) { pulados.add(nome); return; }
                                     if (pasta) { alvo.mkdirs(); return; }
                                     alvo = unico(alvo); criados.add(alvo); atual = nome;
@@ -312,6 +336,7 @@ public final class Compactador {
                         TarArchiveEntry e;
                         while ((e = t.getNextEntry()) != null) {
                             File alvo = alvoSeguro(destino, e.getName());
+                            if (!quer(e.getName())) continue;
                             if (alvo == null) { pulados.add(e.getName()); continue; }
                             if (e.isDirectory()) { alvo.mkdirs(); continue; }
                             if (!e.isFile()) continue; // links e arquivos especiais ficam de fora

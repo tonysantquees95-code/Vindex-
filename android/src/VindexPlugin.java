@@ -426,7 +426,12 @@ public class VindexPlugin extends Plugin {
                 return Compactador.listar(new File(a.getString("origem")), a.optString("senha", ""));
             case "arquivo_extrair":
                 semAcesso();
-                return Compactador.extrair(new File(a.getString("origem")), new File(a.getString("destino")), a.optString("senha", ""));
+            {
+                java.util.Set<String> so = null;
+                org.json.JSONArray sel = a.optJSONArray("selecionados");
+                if (sel != null) { so = new java.util.HashSet<String>(); for (int i = 0; i < sel.length(); i++) so.add(sel.getString(i).replace('\\', '/')); }
+                return Compactador.extrair(new File(a.getString("origem")), new File(a.getString("destino")), a.optString("senha", ""), so);
+            }
             case "arquivo_progresso":
                 return Compactador.progresso();
             case "arquivo_cancelar":
