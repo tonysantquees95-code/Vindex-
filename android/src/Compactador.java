@@ -93,6 +93,7 @@ public final class Compactador {
         if (t.contains("Password") || (m != null && m.toLowerCase(Locale.ROOT).contains("password"))) return "O arquivo tem senha. Informe a senha e tente de novo.";
         if (t.contains("UnsupportedZipFeature") || t.contains("Encrypted")) return "Este ZIP é protegido por senha de um tipo que ainda não consigo abrir.";
         if (e instanceof OutOfMemoryError) return "Faltou memória para abrir este arquivo.";
+        if (e instanceof java.io.EOFException || (m != null && m.toLowerCase(Locale.ROOT).contains("unexpected end"))) return "O arquivo está incompleto ou vazio. O download provavelmente não terminou: baixe de novo.";
         return m == null || m.isEmpty() ? t : m;
     }
 
@@ -101,6 +102,7 @@ public final class Compactador {
     public static JSONObject listar(File f, String senha) throws Exception {
         String fmt = formato(f.getName());
         if (fmt.isEmpty()) throw new Exception("Não conheço este formato de arquivo.");
+        if (f.length() == 0) throw new Exception("O arquivo está vazio (0 B). O download não terminou: baixe de novo.");
         List<String> nomes = new ArrayList<String>();
         long[] soma = new long[2]; // itens, bytes
         try {
