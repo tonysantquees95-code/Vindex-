@@ -1,6 +1,8 @@
 import { instalarVoltar, registrarVoltar } from "./voltar";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type TouchEvent } from "react";
-import { aparelhoLocal, buscarPedidos, guardarSessao, responderPedido, sair, sessaoGuardada, verificar, ErroConta, SERVIDOR, type Sessao } from "./conta";
+import { avaliar } from "./trava";
+import { TelaConfirmando, TelaTesteAcabou } from "./telas/Trava";
+import { gravarVisto, lerVisto, aparelhoLocal, buscarPedidos, guardarSessao, responderPedido, sair, sessaoGuardada, verificar, ErroConta, SERVIDOR, type Sessao } from "./conta";
 import { pastasSalvas, useMotor } from "./estado";
 import { BUILD, haNovaVersao, precisaConferir, procurarVersao, type InfoVersao } from "./atualizacao";
 import { devePassar } from "./autoOrganizar";
@@ -136,6 +138,13 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Trava de segurança: o recibo assinado do servidor é conferido aqui, sem internet. Sem recibo bom, o app não abre.
+  const [relogio, setRelogio] = useState(() => Date.now());
+  useEffect(() => { const t = setInterval(() => setRelogio(Date.now()), 60_000); return () => clearInterval(t); }, []);
+  const estadoTrava = sessao ? avaliar(sessao.licenca.selo, relogio, lerVisto()) : null;
+  useEffect(() => { if (estadoTrava && estadoTrava.tipo !== "validar_online") gravarVisto(relogio); }, [estadoTrava?.tipo, relogio]);
+  const revalidar = async () => { if (!sessao) return; try { definir({ ...sessao, licenca: await verificar(sessao.token) }); setRelogio(Date.now()); } catch (e) { if (e instanceof ErroConta && e.status === 401) definir(null); } };
+
   // Ponte da Vênus: enquanto o Vindex está aberto e com licença, busca e executa os pedidos de voz.
   const liberado = !!sessao?.licenca.acesso && sessao.licenca.apps?.vindex !== false;
   useEffect(() => {
@@ -162,6 +171,8 @@ export function App() {
   }, [sessao?.token, liberado, motor]);
 
   if (!demo && !sessao) return <Conta aparelho={aparelho} aoEntrar={definir} />;
+  if (!demo && sessao && estadoTrava?.tipo === "validar_online") return <TelaConfirmando motivo={estadoTrava.motivo} aoVerificar={revalidar} aoSair={() => { void sair(sessao.token); definir(null); }} />;
+  if (!demo && sessao && estadoTrava?.tipo === "teste_acabou") return <TelaTesteAcabou sessao={sessao} aoVerificar={revalidar} aoSair={() => { void sair(sessao.token); definir(null); }} />;
   const lista = permissoes.lista;
   const faltaObrigatoria = !!lista?.some((p) => p.obrigatoria && !p.concedida);
   const faltaOpcional = !!lista?.some((p) => !p.obrigatoria && !p.concedida);

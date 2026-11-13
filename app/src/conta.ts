@@ -1,7 +1,7 @@
 // Vetorial ID: login único (o mesmo da Vênus), licença e limite de aparelhos vêm do servidor.
 export const SERVIDOR = "https://venus-servidor.tonysantquees95.workers.dev";
 
-export interface Licenca { acesso: boolean; apps?: { vindex?: boolean; vortex?: boolean }; pacote?: string; fimDoTeste?: number; renovar?: boolean; emTeste?: boolean; diasDeTesteRestantes?: number; diasPagosRestantes?: number; plano?: string }
+export interface Licenca { acesso: boolean; apps?: { vindex?: boolean; vortex?: boolean }; pacote?: string; fimDoTeste?: number; renovar?: boolean; emTeste?: boolean; diasDeTesteRestantes?: number; diasPagosRestantes?: number; plano?: string; selo?: string }
 export interface Sessao { token: string; email: string; nome: string; licenca: Licenca }
 export const SITE_DA_CONTA = `${SERVIDOR}/conta.html`;
 export interface Aparelho { id: string; nome: string; plataforma: string }
@@ -78,3 +78,14 @@ export const cofreNuvem = {
   gravar: (token: string, pacote: string, base: number) => chamar<{ ok: boolean; versao: number }>("PUT", "/cofre", { pacote, base }, token),
   apagar: (token: string) => chamar<{ ok: boolean }>("DELETE", "/cofre", { confirmar: "APAGAR" }, token)
 };
+
+// ------------------------------------------------------------------ trava de segurança (recibo assinado conferido offline)
+const CHAVE_VISTO = "vindex.visto";
+export function lerVisto(): number { try { return Number(localStorage.getItem(CHAVE_VISTO) ?? 0) || 0; } catch { return 0; } }
+export function gravarVisto(agora: number): void { try { if (agora > lerVisto()) localStorage.setItem(CHAVE_VISTO, String(agora)); } catch { /* ok */ } }
+
+/** Abre o pagamento do plano (gera a cobrança no servidor). */
+export async function gerarCobranca(token: string): Promise<string> {
+  const r = await chamar<{ cobranca?: { url?: string } }>("GET", "/id/licenca?gerar=1", undefined, token);
+  return r.cobranca?.url ?? "";
+}

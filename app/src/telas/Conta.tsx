@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { ErroConta, type Aparelho, type ErroDeLimite, type Sessao, entrar } from "../conta";
+import { ErroConta, SITE_DA_CONTA, type Aparelho, type ErroDeLimite, type Sessao, entrar } from "../conta";
 import { Aviso, Botao, Cartao } from "../ui";
 
 const campo = "min-h-11 w-full rounded-xl border border-borda bg-black/20 px-3 text-[15px]";
@@ -43,7 +43,7 @@ export function Conta({ aparelho, aoEntrar }: { aparelho: Aparelho; aoEntrar: (s
           </form>
         </Cartao>
       )}
-      <p className="text-center text-xs text-suave">Não tem conta? Crie na Vênus: o cadastro vale para todos os apps da Vetorial Tech.</p>
+      <p className="text-center text-xs text-suave">Não tem conta? Crie na Vênus ou <a className="underline" href={SITE_DA_CONTA} target="_blank" rel="noopener noreferrer">no site do Vetorial ID</a>: o cadastro vale para todos os apps. Esqueceu a senha? Recupere por e-mail ou SMS no mesmo site.</p>
     </main>
   );
 }
