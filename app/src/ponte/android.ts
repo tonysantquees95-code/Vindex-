@@ -1,5 +1,5 @@
 import { registerPlugin } from "@capacitor/core";
-import type { Motor, Permissao } from "./tipos";
+import type { AppSuite, Motor, Permissao } from "./tipos";
 import { pastaDeExtracao } from "../formato";
 
 /** Mesmo contrato do Rust, implementado em Kotlin (plugin "Vindex"). */
@@ -12,6 +12,8 @@ interface PluginVindex {
   abrirArquivo(o: { caminho: string }): Promise<void>;
   pastaPedida(): Promise<{ pasta: string | null }>;
   instalarAtualizacao(o: { url: string; sha256: string }): Promise<void>;
+  appsDaSuite(): Promise<{ apps: AppSuite[] }>;
+  instalarDaSuite(o: { pacote: string; url: string; sha256: string }): Promise<void>;
   cofreBioEstado(o: { conta: string }): Promise<{ disponivel: boolean; ativo: boolean }>;
   cofreBioGuardar(o: { conta: string; segredo: string }): Promise<{ valor: string }>;
   cofreBioAbrir(o: { conta: string }): Promise<{ valor: string }>;
@@ -26,7 +28,7 @@ export function motorAndroid(): Motor {
   const c = async <T>(comando: string, args: Record<string, unknown> = {}): Promise<T> => JSON.parse((await Vindex.motor({ comando, args: JSON.stringify(args) })).resultado) as T;
   return {
     plataforma: "android",
-    recursos: { extrair: true, defender: false, inicializacao: false, abrirPasta: false, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: true, permissoes: true, atualizaSozinho: true },
+    recursos: { extrair: true, defender: false, inicializacao: false, abrirPasta: false, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: true, suite: true, permissoes: true, atualizaSozinho: true },
     diagnostico: (processos = 8) => c("diagnostico", { processos }),
     otimizarTudo: (simulacao = false) => c("otimizar_tudo", { simulacao }),
     escolherPasta: async () => (await Vindex.escolherPasta()).pasta,
@@ -78,6 +80,8 @@ export function motorAndroid(): Motor {
     pedirPermissao: (id) => Vindex.pedirPermissao({ id }),
     abrirConfiguracao: (id) => Vindex.abrirConfiguracao({ id }),
     verificarApps: () => c("verificar_apps"),
+    appsDaSuite: async () => (await Vindex.appsDaSuite()).apps,
+    instalarDaSuite: (pacote, url, sha256) => Vindex.instalarDaSuite({ pacote, url, sha256 }),
     instalarAtualizacao: (url, sha256) => Vindex.instalarAtualizacao({ url, sha256 })
   };
 }

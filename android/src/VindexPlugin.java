@@ -287,6 +287,84 @@ public class VindexPlugin extends Plugin {
         });
     }
 
+    // ------------------------------------------------------------ apps da suíte Vetorial Tech
+    @PluginMethod
+    public void appsDaSuite(PluginCall call) {
+        PackageManager pm = getContext().getPackageManager();
+        JSONArray lista = new JSONArray();
+        try {
+            for (String[] a : Suite.APPS) {
+                JSONObject o = new JSONObject().put("pacote", a[0]).put("nome", a[1]).put("repo", Suite.DONO + "/" + a[2]);
+                try {
+                    PackageInfo pi = pm.getPackageInfo(a[0], 0);
+                    String por = null;
+                    try { por = pm.getInstallerPackageName(a[0]); } catch (Exception e) { /* sem leitura */ }
+                    o.put("instalado", true).put("versao", pi.versionName == null ? "" : pi.versionName).put("instaladoPeloVindex", getContext().getPackageName().equals(por));
+                } catch (PackageManager.NameNotFoundException e) {
+                    o.put("instalado", false).put("versao", "").put("instaladoPeloVindex", false);
+                }
+                lista.put(o);
+            }
+            JSObject r = new JSObject();
+            r.put("apps", lista);
+            call.resolve(r);
+        } catch (JSONException e) {
+            call.reject("Não consegui listar os apps da suíte.");
+        }
+    }
+
+    /** Baixa o APK do app da suíte (só do GitHub do Toni), confere pacote, assinatura e SHA-256, e instala. */
+    @PluginMethod
+    public void instalarDaSuite(final PluginCall call) {
+        final String pacote = call.getString("pacote", "");
+        final String url = call.getString("url", "");
+        final String sha = call.getString("sha256", "");
+        if (!Suite.urlPermitida(pacote, url)) { call.reject("Esse endereço não é uma versão oficial da Vetorial Tech. Nada foi baixado."); return; }
+        if (sha.isEmpty()) { call.reject("A versão não traz o código de conferência (SHA-256). Por segurança, nada foi instalado."); return; }
+        if (!podeInstalar()) {
+            pedirTela("instalar");
+            call.reject("Libere “Instalar apps desconhecidos” para o Vindex na tela que abriu e toque de novo.");
+            return;
+        }
+        getBridge().execute(new Runnable() {
+            @Override
+            public void run() {
+                File apk = new File(getContext().getCacheDir(), "suite-" + pacote + ".apk");
+                try {
+                    java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                    c.setConnectTimeout(20_000);
+                    c.setReadTimeout(60_000);
+                    if (c.getResponseCode() != 200) throw new Exception("O download falhou (" + c.getResponseCode() + ").");
+                    java.io.InputStream in = c.getInputStream();
+                    java.io.FileOutputStream out = new java.io.FileOutputStream(apk);
+                    try {
+                        byte[] b = new byte[64 * 1024];
+                        int n;
+                        while ((n = in.read(b)) > 0) out.write(b, 0, n);
+                    } finally { out.close(); in.close(); c.disconnect(); }
+                    if (!sha.equalsIgnoreCase(Suite.sha256(apk))) throw new Exception("O arquivo baixado não confere com o publicado. Nada foi instalado.");
+                    String recusa = Suite.conferir(getContext(), apk, pacote);
+                    if (recusa != null) throw new Exception(recusa);
+                    try {
+                        Suite.instalar(getContext(), apk, pacote, ACAO_INSTALAR);
+                        call.resolve();
+                    } catch (Exception sessao) {
+                        // plano B: tela de instalação do próprio Android
+                        android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", apk);
+                        final Intent it = new Intent(Intent.ACTION_VIEW);
+                        it.setDataAndType(uri, "application/vnd.android.package-archive");
+                        it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                        getContext().startActivity(it);
+                        call.resolve();
+                    }
+                } catch (Exception e) {
+                    apk.delete();
+                    call.reject(e.getMessage() == null ? e.toString() : e.getMessage());
+                }
+            }
+        });
+    }
+
     private void pedirTela(String id) {
         if ("instalar".equals(id)) abrirTela(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getContext().getPackageName())), new Intent(Settings.ACTION_SECURITY_SETTINGS));
     }

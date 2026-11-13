@@ -59,6 +59,8 @@ export interface Recursos {
   arquivosSuspeitos: boolean;
   /** verificar os apps instalados (Android) */
   verificarApps: boolean;
+  /** instalar e atualizar os apps da Vetorial Tech conferindo origem, assinatura e hash (Android) */
+  suite: boolean;
   /** o app pede permissões ao Android antes de usar */
   permissoes: boolean;
   /** o app se atualiza baixando o APK e abrindo a instalação */
@@ -127,4 +129,10 @@ export interface Motor {
   verificarApps(): Promise<ResultadoVerificacao>;
   /** Android: baixa o APK, confere o SHA-256 e abre a confirmação de instalação. */
   instalarAtualizacao(url: string, sha256: string): Promise<void>;
+  /** Android: os apps da suíte Vetorial Tech e o que está instalado de cada um. */
+  appsDaSuite(): Promise<AppSuite[]>;
+  /** Android: baixa do GitHub oficial, confere pacote, assinatura e SHA-256, e instala. */
+  instalarDaSuite(pacote: string, url: string, sha256: string): Promise<void>;
 }
+
+export interface AppSuite { pacote: string; nome: string; repo: string; instalado: boolean; versao: string; instaladoPeloVindex: boolean }

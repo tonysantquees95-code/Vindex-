@@ -5,6 +5,7 @@ import { analisarLink, type AnaliseDeLink } from "../link";
 import type { EstadoProtecao, ResultadoVerificacao } from "../ponte";
 import { Aviso, Botao, Cartao } from "../ui";
 import { Pastas } from "./Pastas";
+import { SuiteApps } from "./SuiteApps";
 
 const campo = "min-h-11 w-full rounded-xl border border-borda bg-black/20 px-3 text-sm";
 const COR_NIVEL = { alto: "border-erro/40 bg-erro/10 text-erro", medio: "border-aviso/40 bg-aviso/10 text-aviso", baixo: "border-borda text-suave" } as const;
@@ -68,6 +69,8 @@ export function Seguranca() {
       {estado && !estado.suportado && estado.nota && <Aviso>{estado.nota}</Aviso>}
       {erro && <Aviso tom="erro">{erro}</Aviso>}
       {msg && <Aviso tom="ok">{msg}</Aviso>}
+
+      {motor.recursos.suite && <SuiteApps />}
 
       {motor.recursos.verificarApps && (
         <Cartao titulo="Apps instalados">
