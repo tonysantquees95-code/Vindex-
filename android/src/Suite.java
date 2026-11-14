@@ -27,12 +27,14 @@ public final class Suite {
     private Suite() { }
 
     static final String DONO = "tonysantquees95-code";
-    /** pacote, nome, repositório (a Vênus não entra: o repositório dela é privado e ela se atualiza pelo servidor) */
+    /** pacote, nome, repositório (o da Vênus é privado: o link vem do servidor da Vênus, assinado pelo GitHub e válido por poucos minutos) */
     public static final String[][] APPS = {
         {"tech.vetorial.vindex", "Vindex", "Vindex-"},
         {"tech.vetorial.vortex", "Vortex", "Vortex"},
         {"tech.vetorial.velox", "Velox", "Velox-gaming-search"},
+        {"com.tonimarques.sextafeira", "Vênus", "Venus-core"},
     };
+    static final String PACOTE_VENUS = "com.tonimarques.sextafeira";
 
     public static String[] app(String pacote) {
         for (String[] a : APPS) if (a[0].equals(pacote)) return a;
@@ -45,12 +47,48 @@ public final class Suite {
         if (a == null || url == null) return false;
         try {
             java.net.URL u = new java.net.URL(url);
+            if (u.getProtocol().equals("https") && PACOTE_VENUS.equals(pacote) && u.getHost().toLowerCase(Locale.ROOT).endsWith(".githubusercontent.com")) return true;
             return u.getProtocol().equals("https")
                 && u.getHost().equalsIgnoreCase("github.com")
                 && u.getPath().toLowerCase(Locale.ROOT).startsWith(("/" + DONO + "/" + a[2] + "/releases/download/").toLowerCase(Locale.ROOT));
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /** Olha um APK solto (por exemplo em Downloads) sem instalar: de quem é, quem assinou e que poderes pede. null = nada a apontar. */
+    public static String[] avaliarApk(Context ctx, File apk) {
+        PackageManager pm = ctx.getPackageManager();
+        int flags = bandeiraDeAssinatura() | PackageManager.GET_PERMISSIONS | PackageManager.GET_SERVICES;
+        PackageInfo pi = pm.getPackageArchiveInfo(apk.getPath(), flags);
+        if (pi == null) return new String[]{"medio", "O arquivo termina em .apk mas o Android não consegue ler: pode estar corrompido ou disfarçado."};
+        try {
+            Set<String> minhas = assinaturas(pm.getPackageInfo(ctx.getPackageName(), bandeiraDeAssinatura()));
+            Set<String> dele = assinaturas(pi);
+            dele.retainAll(minhas);
+            if (!dele.isEmpty()) {
+                if (app(pi.packageName) != null) return null; // app da suíte, assinado pela Vetorial Tech
+                return new String[]{"alto", "Diz ser da Vetorial Tech (" + pi.packageName + ") mas não é um app da suíte, embora tenha a nossa assinatura."};
+            }
+        } catch (Exception e) { /* segue para o resto */ }
+        boolean sobrepoe = false, sms = false, smsEnviar = false, admin = false, acessibilidade = false, ouve = false, instala = false;
+        if (pi.requestedPermissions != null) for (String p : pi.requestedPermissions) {
+            if ("android.permission.SYSTEM_ALERT_WINDOW".equals(p)) sobrepoe = true;
+            if ("android.permission.READ_SMS".equals(p)) sms = true;
+            if ("android.permission.SEND_SMS".equals(p)) smsEnviar = true;
+            if ("android.permission.BIND_DEVICE_ADMIN".equals(p)) admin = true;
+            if ("android.permission.REQUEST_INSTALL_PACKAGES".equals(p)) instala = true;
+        }
+        if (pi.services != null) for (android.content.pm.ServiceInfo s : pi.services) {
+            if ("android.permission.BIND_ACCESSIBILITY_SERVICE".equals(s.permission)) acessibilidade = true;
+            if ("android.permission.BIND_NOTIFICATION_LISTENER_SERVICE".equals(s.permission)) ouve = true;
+        }
+        boolean depuravel = pi.applicationInfo != null && (pi.applicationInfo.flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        String[] r = Motor.riscoDoApp(true, acessibilidade, sobrepoe, sms && smsEnviar, ouve, admin, depuravel);
+        String nome = pi.packageName == null ? "app" : pi.packageName;
+        if (r == null) return new String[]{"baixo", "APK de fora da loja (" + nome + "). Só instale se você conhece a origem."};
+        String extra = instala ? " Também pode instalar outros apps." : "";
+        return new String[]{r[0], "APK " + nome + ": " + r[1] + extra};
     }
 
     public static String hex(byte[] b) {

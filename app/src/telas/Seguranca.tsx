@@ -6,6 +6,7 @@ import type { EstadoProtecao, ResultadoVerificacao } from "../ponte";
 import { Aviso, Botao, Cartao } from "../ui";
 import { Pastas } from "./Pastas";
 import { SuiteApps } from "./SuiteApps";
+import { RelatorioSeguranca } from "./RelatorioSeguranca";
 
 const campo = "min-h-11 w-full rounded-xl border border-borda bg-black/20 px-3 text-sm";
 const COR_NIVEL = { alto: "border-erro/40 bg-erro/10 text-erro", medio: "border-aviso/40 bg-aviso/10 text-aviso", baixo: "border-borda text-suave" } as const;
@@ -24,6 +25,7 @@ export function Seguranca() {
   const [erro, setErro] = useState("");
   const [verif, setVerif] = useState<ResultadoVerificacao | null>(null);
   const [apps, setApps] = useState<ResultadoVerificacao | null>(null);
+  const [apks, setApks] = useState<ResultadoVerificacao | null>(null);
   const [hosts, setHosts] = useState<string[] | null>(null);
   const [link, setLink] = useState("");
   const [analise, setAnalise] = useState<AnaliseDeLink | null>(null);
@@ -71,6 +73,28 @@ export function Seguranca() {
       {msg && <Aviso tom="ok">{msg}</Aviso>}
 
       {motor.recursos.suite && <SuiteApps />}
+
+      {motor.recursos.suite && (
+        <Cartao titulo="APKs baixados (antes de instalar)">
+          <p className="mb-3 text-sm text-suave">O Vindex olha os APKs que estão nas pastas abaixo sem instalar nada: confere se o arquivo abre, quem assinou e que poderes ele pede (ler a tela, desenhar por cima, ler SMS…). Os suspeitos vão para a quarentena, que dá para desfazer.</p>
+          <Pastas pastas={pastas} adicionar={adicionar} remover={remover} />
+          <Botao className="mt-3" variante="primario" disabled={!pastas.length || !!ocupado} onClick={async () => { const r = await rodar("apks", () => motor.verificarApks(pastas)); if (r) setApks(r); }}>{ocupado === "apks" ? "Verificando…" : "Verificar APKs"}</Botao>
+          {apks && (
+            <div className="mt-3">
+              <p className="text-sm">{apks.analisados} APKs analisados · {apks.achados.length === 0 ? <span className="text-ok">nada suspeito</span> : <span className="text-aviso">{apks.achados.length} para olhar</span>}</p>
+              <ul className="mt-2 max-h-72 space-y-2 overflow-auto">{apks.achados.map((a) => (
+                <li key={a.caminho} className={`rounded-xl border px-3 py-2 text-sm ${COR_NIVEL[a.nivel]}`}>
+                  <div className="flex justify-between gap-2"><span className="min-w-0 break-all font-medium">{nomeDoArquivo(a.caminho)}</span><span className="flex-none text-xs uppercase">{ROTULO_NIVEL[a.nivel]}</span></div>
+                  <div className="text-xs opacity-90">{a.motivo}</div>
+                  {a.nivel !== "baixo" && <button className="mt-1 text-xs underline" onClick={async () => { const r = await rodar("quarentena", () => motor.paraLixeira([a.caminho])); if (r) { setApks({ ...apks, achados: apks.achados.filter((x) => x.caminho !== a.caminho) }); setMsg("APK movido para a quarentena (pasta Vindex-Quarentena)."); } }}>Mandar para a quarentena</button>}
+                </li>
+              ))}</ul>
+            </div>
+          )}
+        </Cartao>
+      )}
+
+      {motor.recursos.suite && <RelatorioSeguranca />}
 
       {motor.recursos.verificarApps && (
         <Cartao titulo="Apps instalados">

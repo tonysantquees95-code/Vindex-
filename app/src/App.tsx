@@ -20,6 +20,9 @@ import { Otimizar } from "./telas/Otimizar";
 import { Painel } from "./telas/Painel";
 import { RegrasTela } from "./telas/Regras";
 import { Seguranca } from "./telas/Seguranca";
+import { atualizarSuiteAuto } from "./telas/SuiteApps";
+import { gerarRelatorio } from "./telas/RelatorioSeguranca";
+import { conferirNovos, relatorioSalvo, relatorioVencido } from "./relatorio";
 import { Cofre } from "./telas/Cofre";
 import type { InicioPeloMenu } from "./ponte";
 import { Aviso } from "./ui";
@@ -66,9 +69,10 @@ export function App() {
   useEffect(() => (menu ? registrarVoltar(3, () => { setMenu(false); return true; }) : undefined), [menu]);
   const [ajustes] = useAjustes();
   const permissoes = usePermissoes();
-  const [permVistas, setPermVistas] = useState(() => { try { return localStorage.getItem("vindex.permissoes.vistas") === "1"; } catch { return false; } });
+  const [permVistas, setPermVistas] = useState(() => { try { return localStorage.getItem("vindex.permissoes.vistas2") === "1"; } catch { return false; } });
   const [nova, setNova] = useState<InfoVersao | null>(null);
   const [avisoAtualizacao, setAvisoAtualizacao] = useState("");
+  const [alertaApps, setAlertaApps] = useState("");
   const [arrumado, setArrumado] = useState<Movimento[]>([]);
   const tentouAtualizar = useRef(0);
   const inicioToque = useRef<number | null>(null);
@@ -109,6 +113,40 @@ export function App() {
     return () => { vivo = false; clearInterval(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [motor, demo, ajustes.autoAtualizar, instalarLiberado]);
+
+  // Apps da suíte (Vênus, Vortex, Velox): atualiza sozinho os que o Vindex instalou, a cada 6 horas.
+  useEffect(() => {
+    if (demo || !motor.recursos.suite || !ajustes.autoAtualizar || !instalarLiberado) return;
+    let vivo = true;
+    const ciclo = async () => {
+      let ultimo = 0;
+      try { ultimo = Number(localStorage.getItem("vindex.suite.ultima") ?? 0); } catch { /* ok */ }
+      if (!precisaConferir(ultimo, Date.now())) return;
+      try {
+        const feitos = await atualizarSuiteAuto(motor);
+        try { localStorage.setItem("vindex.suite.ultima", String(Date.now())); } catch { /* ok */ }
+        if (vivo && feitos.length) setAvisoAtualizacao(`Atualizando sozinho: ${feitos.join(", ")}.`);
+      } catch { /* sem internet: tenta no próximo ciclo */ }
+    };
+    void ciclo();
+    const t = setInterval(() => void ciclo(), 30 * 60_000);
+    return () => { vivo = false; clearInterval(t); };
+  }, [motor, demo, ajustes.autoAtualizar, instalarLiberado]);
+
+  // Alerta de app novo instalado fora da loja e relatório da semana.
+  useEffect(() => {
+    if (demo || !motor.recursos.suite) return;
+    let vivo = true;
+    void (async () => {
+      try {
+        const novos = conferirNovos(await motor.appsInstalados()).filter((a) => a.foraDaLoja);
+        if (!vivo) return;
+        if (novos.length) setAlertaApps(`App novo instalado fora da loja e fora do Vindex: ${novos.map((a) => a.nome).join(", ")}. Se não foi você, confira em Segurança.`);
+        if (relatorioVencido(relatorioSalvo(), Date.now())) await gerarRelatorio(motor, novos.map((a) => a.nome));
+      } catch { /* sem permissão ou sem leitura: tenta na próxima abertura */ }
+    })();
+    return () => { vivo = false; };
+  }, [motor, demo]);
 
   // Organização automática: só depois de liberar os arquivos, e sempre com “Desfazer”.
   useEffect(() => {
@@ -177,7 +215,7 @@ export function App() {
   const faltaObrigatoria = !!lista?.some((p) => p.obrigatoria && !p.concedida);
   const faltaOpcional = !!lista?.some((p) => !p.obrigatoria && !p.concedida);
   if (motor.recursos.permissoes && lista && (faltaObrigatoria || (!permVistas && faltaOpcional))) {
-    return <TelaDePermissoes aoContinuar={() => { setPermVistas(true); try { localStorage.setItem("vindex.permissoes.vistas", "1"); } catch { /* ok */ } void permissoes.atualizar(); }} />;
+    return <TelaDePermissoes aoContinuar={() => { setPermVistas(true); try { localStorage.setItem("vindex.permissoes.vistas2", "1"); } catch { /* ok */ } void permissoes.atualizar(); }} />;
   }
   const ir = (id: string) => setAba(id as IdAba);
   const telas: Record<IdAba, ReactNode> = {
@@ -211,6 +249,7 @@ export function App() {
       {ultimoPedido && <div className="mb-3"><Aviso tom="ok">{ultimoPedido}</Aviso></div>}
       {nova && <div className="mb-3"><Aviso>Tem versão nova do Vindex (1.{nova.numero}). <button className="ml-1 underline" onClick={() => void atualizar(nova)}>Atualizar agora</button></Aviso></div>}
       {avisoAtualizacao && <div className="mb-3"><Aviso tom="ok">{avisoAtualizacao}</Aviso></div>}
+      {alertaApps && <div className="mb-3"><Aviso>{alertaApps}</Aviso></div>}
       {arrumado.length > 0 && (
         <div className="mb-3"><Aviso tom="ok">O Vindex organizou {arrumado.length} arquivo(s) sozinho.
           <button className="ml-2 underline" onClick={() => { void motor.desfazer(arrumado).then(() => setArrumado([])); }}>Desfazer</button>

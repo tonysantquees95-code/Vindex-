@@ -58,6 +58,8 @@ export async function motorTauri(): Promise<Motor> {
     verificarApps: async () => ({ analisados: 0, achados: [] }),
     appsDaSuite: async () => [],
     instalarDaSuite: async () => { throw new Error("Só no Android."); },
+    verificarApks: async () => ({ analisados: 0, achados: [] }),
+    appsInstalados: async () => [],
     instalarAtualizacao: (url, sha256) => invoke("instalar_atualizacao", { url, sha256 })
   };
 }

@@ -39,6 +39,6 @@ export function motorDemo(): Motor {
     defenderVarrer: async () => { throw new Error("Modo demonstração."); },
     verificarArquivos: async () => ({ analisados: 0, achados: [] }), programasIniciais: async () => [], verificarHosts: async () => [],
     permissoes: async () => [], pedirPermissao: async () => undefined, abrirConfiguracao: async () => undefined,
-    verificarApps: async () => ({ analisados: 0, achados: [] }), appsDaSuite: async () => [], instalarDaSuite: async () => { throw new Error("Modo demonstração."); }, instalarAtualizacao: async () => { throw new Error("Modo demonstração."); }
+    verificarApps: async () => ({ analisados: 0, achados: [] }), appsDaSuite: async () => [], instalarDaSuite: async () => { throw new Error("Modo demonstração."); }, verificarApks: async () => ({ analisados: 0, achados: [] }), appsInstalados: async () => [], instalarAtualizacao: async () => { throw new Error("Modo demonstração."); }
   };
 }

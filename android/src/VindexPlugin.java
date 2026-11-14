@@ -109,8 +109,8 @@ public class VindexPlugin extends Plugin {
                     .put(new JSONObject().put("id", "uso").put("rotulo", "Acesso ao uso de apps")
                             .put("motivo", "Para mostrar quais apps mais usam o aparelho e deixar o Vindex ajudar a otimizar. Só lê o tempo de uso, nunca o conteúdo.")
                             .put("obrigatoria", false).put("concedida", temUso()))
-                    .put(new JSONObject().put("id", "instalar").put("rotulo", "Instalar atualizações")
-                            .put("motivo", "Para o Vindex baixar a versão nova dele mesmo e abrir a instalação, sem você procurar o arquivo.")
+                    .put(new JSONObject().put("id", "instalar").put("rotulo", "Instalar apps da Vetorial Tech")
+                            .put("motivo", "Recomendado: deixa o Vindex baixar e atualizar a Vênus, o Vortex, o Velox e ele mesmo, só das páginas oficiais e depois de conferir assinatura e SHA-256. Sem isto você aperta vários botões a cada atualização.")
                             .put("obrigatoria", false).put("concedida", podeInstalar())));
             call.resolve(r);
         } catch (Exception e) {
@@ -451,6 +451,10 @@ public class VindexPlugin extends Plugin {
                 return estadoProtecao();
             case "verificar_apps":
                 return verificarApps();
+            case "apps_instalados":
+                return appsInstalados();
+            case "verificar_apks":
+                return verificarApks(raizes(a));
             case "verificar_arquivos":
                 return Motor.verificar(Motor.varrer(raizes(a), 4));
             case "varrer":
@@ -966,6 +970,46 @@ public class VindexPlugin extends Plugin {
             achados.put(new JSONObject().put("caminho", nome + " (" + pi.packageName + ")").put("nivel", r[0]).put("motivo", r[1]));
         }
         return new JSONObject().put("analisados", analisados).put("achados", achados);
+    }
+
+    /** Lista simples dos apps instalados pelo usuário (para o alerta de app novo e o relatório da semana). */
+    private JSONObject appsInstalados() throws JSONException {
+        Context c = getContext();
+        PackageManager pm = c.getPackageManager();
+        JSONArray lista = new JSONArray();
+        List<String> lojas = java.util.Arrays.asList("com.android.vending", "com.sec.android.app.samsungapps", "com.huawei.appmarket", "com.xiaomi.mipicks", "com.amazon.venezia");
+        for (PackageInfo pi : pm.getInstalledPackages(0)) {
+            ApplicationInfo ai = pi.applicationInfo;
+            if (ai == null || (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0) continue;
+            String por = null;
+            try { por = pm.getInstallerPackageName(pi.packageName); } catch (Exception e) { /* sem leitura */ }
+            boolean suite = Suite.app(pi.packageName) != null || pi.packageName.equals(c.getPackageName());
+            boolean origemConhecida = suite || (por != null && (lojas.contains(por) || por.equals(c.getPackageName())));
+            lista.put(new JSONObject().put("pacote", pi.packageName).put("nome", String.valueOf(pm.getApplicationLabel(ai))).put("versao", pi.versionName == null ? "" : pi.versionName)
+                    .put("foraDaLoja", !origemConhecida).put("instaladoEm", pi.firstInstallTime));
+        }
+        return new JSONObject().put("apps", lista);
+    }
+
+    /** Procura APKs soltos nas pastas e avalia cada um sem instalar (poderes pedidos, assinatura, arquivo corrompido). */
+    private JSONObject verificarApks(List<File> raizes) throws JSONException {
+        JSONArray achados = new JSONArray();
+        int[] analisados = {0};
+        for (File r : raizes) procurarApks(r, 0, achados, analisados);
+        return new JSONObject().put("analisados", analisados[0]).put("achados", achados);
+    }
+
+    private void procurarApks(File pasta, int nivel, JSONArray achados, int[] analisados) throws JSONException {
+        File[] filhos = pasta.listFiles();
+        if (filhos == null || nivel > 4 || analisados[0] >= 300) return;
+        for (File f : filhos) {
+            if (f.getName().equals(Motor.QUARENTENA)) continue;
+            if (f.isDirectory()) { procurarApks(f, nivel + 1, achados, analisados); continue; }
+            if (!f.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".apk")) continue;
+            analisados[0]++;
+            String[] r = Suite.avaliarApk(getContext(), f);
+            if (r != null) achados.put(new JSONObject().put("caminho", f.getPath()).put("nivel", r[0]).put("motivo", r[1]));
+        }
     }
 
     private boolean appSobrepoe(String pacote) {

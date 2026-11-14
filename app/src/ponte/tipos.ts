@@ -133,6 +133,12 @@ export interface Motor {
   appsDaSuite(): Promise<AppSuite[]>;
   /** Android: baixa do GitHub oficial, confere pacote, assinatura e SHA-256, e instala. */
   instalarDaSuite(pacote: string, url: string, sha256: string): Promise<void>;
+  /** Android: avalia os APKs soltos nas pastas (sem instalar). */
+  verificarApks(raizes: string[]): Promise<ResultadoVerificacao>;
+  /** Android: lista dos apps instalados pelo usuário, para o alerta de app novo. */
+  appsInstalados(): Promise<AppInstalado[]>;
 }
+
+export interface AppInstalado { pacote: string; nome: string; versao: string; foraDaLoja: boolean; instaladoEm: number }
 
 export interface AppSuite { pacote: string; nome: string; repo: string; instalado: boolean; versao: string; instaladoPeloVindex: boolean }

@@ -1,5 +1,5 @@
 import { registerPlugin } from "@capacitor/core";
-import type { AppSuite, Motor, Permissao } from "./tipos";
+import type { AppInstalado, AppSuite, Motor, Permissao } from "./tipos";
 import { pastaDeExtracao } from "../formato";
 
 /** Mesmo contrato do Rust, implementado em Kotlin (plugin "Vindex"). */
@@ -81,6 +81,8 @@ export function motorAndroid(): Motor {
     abrirConfiguracao: (id) => Vindex.abrirConfiguracao({ id }),
     verificarApps: () => c("verificar_apps"),
     appsDaSuite: async () => (await Vindex.appsDaSuite()).apps,
+    verificarApks: (raizes) => c("verificar_apks", { raizes }),
+    appsInstalados: async () => (await c<{ apps: AppInstalado[] }>("apps_instalados")).apps,
     instalarDaSuite: (pacote, url, sha256) => Vindex.instalarDaSuite({ pacote, url, sha256 }),
     instalarAtualizacao: (url, sha256) => Vindex.instalarAtualizacao({ url, sha256 })
   };
