@@ -160,4 +160,4 @@ export interface ResultadoRestos { apagados: number; bytes: number; falhas: stri
 
 export interface AppInstalado { pacote: string; nome: string; versao: string; foraDaLoja: boolean; instaladoEm: number }
 
-export interface AppSuite { pacote: string; nome: string; repo: string; instalado: boolean; versao: string; instaladoPeloVindex: boolean }
+export interface AppSuite { pacote: string; nome: string; repo: string; instalado: boolean; versao: string; instaladoPeloVindex: boolean; /** quando foi instalada/atualizada (ms) */ atualizadoEm?: number }

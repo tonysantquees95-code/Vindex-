@@ -299,7 +299,7 @@ public class VindexPlugin extends Plugin {
                     PackageInfo pi = pm.getPackageInfo(a[0], 0);
                     String por = null;
                     try { por = pm.getInstallerPackageName(a[0]); } catch (Exception e) { /* sem leitura */ }
-                    o.put("instalado", true).put("versao", pi.versionName == null ? "" : pi.versionName).put("instaladoPeloVindex", getContext().getPackageName().equals(por));
+                    o.put("instalado", true).put("versao", pi.versionName == null ? "" : pi.versionName).put("atualizadoEm", pi.lastUpdateTime).put("instaladoPeloVindex", getContext().getPackageName().equals(por));
                 } catch (PackageManager.NameNotFoundException e) {
                     o.put("instalado", false).put("versao", "").put("instaladoPeloVindex", false);
                 }

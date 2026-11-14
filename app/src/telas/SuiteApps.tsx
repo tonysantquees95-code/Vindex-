@@ -14,7 +14,7 @@ export async function atualizarSuiteAuto(motor: Motor): Promise<string[]> {
   for (const a of lista) {
     if (!a.instalado || !a.instaladoPeloVindex) continue;
     const v = await versaoDaSuite(a.pacote, a.repo.split("/")[1] ?? "");
-    if (!v || situacao(true, a.versao, v) !== "atualizar") continue;
+    if (!v || situacao(true, a.versao, v, a.atualizadoEm) !== "atualizar") continue;
     try { await motor.instalarDaSuite(a.pacote, v.url, v.sha256); feitos.push(a.nome); } catch { /* tenta no próximo ciclo */ }
   }
   return feitos;
@@ -55,7 +55,7 @@ export function SuiteApps() {
     } catch (e) { setErro(typeof e === "string" ? e : e instanceof Error ? e.message : "Não deu certo."); } finally { setOcupado(""); }
   }
 
-  const pendentes = apps.filter((a) => a.instalado && situacao(true, a.versao, publicadas[a.pacote] ?? null) === "atualizar");
+  const pendentes = apps.filter((a) => a.instalado && situacao(true, a.versao, publicadas[a.pacote] ?? null, a.atualizadoEm) === "atualizar");
   async function atualizarTodos() {
     setOcupado("todos"); setErro(""); setMsg("");
     try {
@@ -74,7 +74,7 @@ export function SuiteApps() {
       <ul className="mt-2 space-y-2">
         {apps.map((a) => {
           const v = publicadas[a.pacote] ?? null;
-          const s = situacao(a.instalado, a.versao, v);
+          const s = situacao(a.instalado, a.versao, v, a.atualizadoEm);
           return (
             <li key={a.pacote} className="flex items-center justify-between gap-2 rounded-xl border border-borda px-3 py-2 text-sm">
               <div className="min-w-0">

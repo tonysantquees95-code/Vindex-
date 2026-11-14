@@ -35,3 +35,11 @@ test("situação do app", () => {
   assert.equal(situacao(true, "1.59", v), "em-dia");
   assert.equal(situacao(true, "1.59", null), "sem-versao");
 });
+
+test("versão antiga sem número (1.0) compara pela data de instalação", () => {
+  const v = { ...versaoDoRelease(REPO, release()), publicadoEm: 1000 };
+  assert.equal(situacao(true, "1.0", v, 2000), "em-dia");
+  assert.equal(situacao(true, "1.0", v, 500), "atualizar");
+  assert.equal(situacao(true, "1.0", v), "atualizar");
+  assert.equal(situacao(true, "1.58", v, 5000), "atualizar");
+});
