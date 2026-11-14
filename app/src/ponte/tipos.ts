@@ -153,7 +153,7 @@ export interface Motor {
   detalhesPrograma(id: string, local: string): Promise<void>;
 }
 
-export interface ProgramaInstalado { id: string; nome: string; editora: string; versao: string; bytes: number; instaladoEm: string; local: string; sistema: boolean; silencioso: boolean }
+export interface ProgramaInstalado { id: string; nome: string; editora: string; versao: string; bytes: number; instaladoEm: string; local: string; sistema: boolean; silencioso: boolean; /** Android: PNG em base64 do ícone do app */ icone?: string }
 export interface RestoDePrograma { caminho: string; bytes: number; tipo: "pasta" | "registro" }
 export interface ResultadoDesinstalar { removido: boolean; codigo: number | null; restos: RestoDePrograma[] }
 export interface ResultadoRestos { apagados: number; bytes: number; falhas: string[] }

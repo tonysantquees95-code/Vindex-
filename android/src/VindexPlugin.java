@@ -987,9 +987,27 @@ public class VindexPlugin extends Plugin {
             java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT);
             lista.put(new JSONObject().put("id", pi.packageName).put("nome", String.valueOf(pm.getApplicationLabel(ai))).put("editora", "")
                     .put("versao", pi.versionName == null ? "" : pi.versionName).put("bytes", bytes).put("instaladoEm", f.format(new java.util.Date(pi.lastUpdateTime)))
-                    .put("local", pi.packageName).put("sistema", false).put("silencioso", false));
+                    .put("local", pi.packageName).put("sistema", false).put("silencioso", false).put("icone", iconeDoApp(pm, ai)));
         }
         return lista;
+    }
+
+    /** Ícone do app em PNG pequeno (96 px) já em base64, para a lista de desinstalar. Vazio se não der. */
+    private String iconeDoApp(PackageManager pm, ApplicationInfo ai) {
+        try {
+            android.graphics.drawable.Drawable d = pm.getApplicationIcon(ai);
+            int t = 96;
+            android.graphics.Bitmap b = android.graphics.Bitmap.createBitmap(t, t, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas cv = new android.graphics.Canvas(b);
+            d.setBounds(0, 0, t, t);
+            d.draw(cv);
+            java.io.ByteArrayOutputStream o = new java.io.ByteArrayOutputStream();
+            b.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, o);
+            b.recycle();
+            return android.util.Base64.encodeToString(o.toByteArray(), android.util.Base64.NO_WRAP);
+        } catch (Throwable e) {
+            return "";
+        }
     }
 
     /** Abre a confirmação do Android para desinstalar (um toque em OK). Só pacotes que estão instalados e que não são o próprio Vindex. */
