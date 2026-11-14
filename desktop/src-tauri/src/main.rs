@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::Serialize;
+use tauri::Manager;
 use serde_json::Value;
 use std::path::Path;
 use std::process::Command;
@@ -109,10 +110,46 @@ fn abrir_link(url: String) -> Result<(), String> {
     abrir_com_o_sistema(&url)
 }
 
+/// Janelinha de desempenho (sempre por cima, sem barra do Windows e fora da barra de tarefas). Devolve se ficou aberta.
+#[tauri::command]
+fn widget_alternar(app: tauri::AppHandle) -> Result<bool, String> {
+    use tauri::Manager;
+    if let Some(j) = app.get_webview_window("widget") {
+        j.close().map_err(|e| e.to_string())?;
+        return Ok(false);
+    }
+    let mut b = tauri::WebviewWindowBuilder::new(&app, "widget", tauri::WebviewUrl::App("index.html#widget".into()))
+        .title("Vindex · Desempenho")
+        .inner_size(250.0, 190.0)
+        .resizable(false)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(true);
+    if let Ok(Some(m)) = app.primary_monitor() {
+        let esc = m.scale_factor();
+        let x = (m.size().width as f64 / esc) - 250.0 - 24.0;
+        b = b.position(x.max(0.0), 24.0);
+    }
+    b.build().map_err(|e| e.to_string())?;
+    Ok(true)
+}
+
+#[tauri::command]
+fn widget_aberto(app: tauri::AppHandle) -> bool {
+    use tauri::Manager;
+    app.get_webview_window("widget").is_some()
+}
+
 fn main() {
     tauri::Builder::default()
+        .on_window_event(|janela, evento| {
+            // fechar a janela principal encerra o Vindex inteiro (o widget não fica sozinho rodando)
+            if janela.label() == "main" && matches!(evento, tauri::WindowEvent::CloseRequested { .. }) {
+                janela.app_handle().exit(0);
+            }
+        })
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![motor, argumento_inicial, abrir_pasta, abrir_arquivo, abrir_link, instalar_atualizacao])
+        .invoke_handler(tauri::generate_handler![motor, argumento_inicial, abrir_pasta, abrir_arquivo, abrir_link, instalar_atualizacao, widget_alternar, widget_aberto])
         .run(tauri::generate_context!())
         .expect("não foi possível iniciar o Vindex");
 }

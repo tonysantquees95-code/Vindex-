@@ -94,6 +94,8 @@ export interface Motor {
   alvosDeLimpeza(): Promise<AlvoDeLimpeza[]>;
   planejarLimpeza(alvos: string[]): Promise<PlanoDeLimpeza>;
   executarLimpeza(alvos: string[], simulacao?: boolean): Promise<{ apagados: number; liberado_bytes: number; falhas: string[]; simulacao: boolean }>;
+  /** Widget de desempenho sempre visível: janelinha no Windows, painel flutuante no Android. */
+  painel?: { estado(): Promise<{ ligado: boolean; permissao: boolean }>; alternar(): Promise<{ ligado: boolean; permissao: boolean }> };
   otimizarMemoria(): Promise<{ suportado: boolean; processos_ajustados: number; liberado_bytes: number; nota: string }>;
   pastasConhecidas(): Promise<PastaConhecida[]>;
   escolherArquivo(): Promise<string | null>;

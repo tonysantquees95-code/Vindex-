@@ -129,6 +129,16 @@ jobs:
           FILTROS='<intent-filter>\n                <action android:name="android.intent.action.VIEW_DOWNLOADS" />\n                <category android:name="android.intent.category.DEFAULT" />\n            </intent-filter>\n            <intent-filter>\n                <action android:name="android.intent.action.VIEW" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <data android:mimeType="vnd.android.document/directory" />\n            </intent-filter>'
           sed -i "0,/<\/activity>/s#</activity>#$FILTROS\n        </activity>#" android/app/src/main/AndroidManifest.xml
           grep -c "VIEW_DOWNLOADS" android/app/src/main/AndroidManifest.xml
+          # widget da tela inicial + painel flutuante de desempenho (RAM, temperatura, bateria)
+          cp -r ../android/res/. android/app/src/main/res/
+          python3 - <<'PY'
+          m = "android/app/src/main/AndroidManifest.xml"
+          t = open(m, encoding="utf-8").read()
+          t = t.replace("</application>", open("../android/manifesto_extra.xml", encoding="utf-8").read() + "    </application>", 1)
+          t = t.replace("<application", open("../android/permissoes_extra.xml", encoding="utf-8").read() + "    <application", 1)
+          open(m, "w", encoding="utf-8").write(t)
+          PY
+          grep -c "SobreposicaoService\|VindexWidget" android/app/src/main/AndroidManifest.xml
           grep -c "uses-permission" android/app/src/main/AndroidManifest.xml
           # abrir arquivos de qualquer pasta com o app padrão (o Capacitor já declara o FileProvider ".fileprovider"; aqui liberamos os caminhos)
           grep -q 'fileprovider' android/app/src/main/AndroidManifest.xml

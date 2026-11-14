@@ -1,0 +1,9 @@
+        <receiver android:name=".VindexWidget" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_vindex_info" />
+        </receiver>
+        <service android:name=".SobreposicaoService" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="painel_desempenho" />
+        </service>

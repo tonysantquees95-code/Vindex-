@@ -447,6 +447,19 @@ public class VindexPlugin extends Plugin {
             }
             case "otimizar_memoria":
                 return liberarMemoria();
+            case "painel_estado":
+                return new JSONObject().put("ligado", SobreposicaoService.ativo).put("permissao", SobreposicaoService.podeDesenhar(getContext()));
+            case "painel_alternar": {
+                Context c = getContext();
+                if (SobreposicaoService.ativo) { SobreposicaoService.desligar(c); return new JSONObject().put("ligado", false).put("permissao", true); }
+                if (!SobreposicaoService.podeDesenhar(c)) {
+                    Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + c.getPackageName())).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    c.startActivity(i);
+                    return new JSONObject().put("ligado", false).put("permissao", false);
+                }
+                SobreposicaoService.ligar(c);
+                return new JSONObject().put("ligado", true).put("permissao", true);
+            }
             case "estado_protecao":
                 return estadoProtecao();
             case "verificar_apps":

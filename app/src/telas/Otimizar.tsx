@@ -54,8 +54,32 @@ export function Otimizar() {
     setOcupado(false);
   }
 
+  const painel = motor.painel;
+  const [painelLigado, setPainelLigado] = useState(false);
+  const [dicaPainel, setDicaPainel] = useState("");
+  useEffect(() => { if (painel) void painel.estado().then((e) => setPainelLigado(e.ligado)).catch(() => undefined); }, [painel]);
+  async function alternarPainel() {
+    if (!painel) return;
+    setDicaPainel("");
+    try {
+      const r = await painel.alternar();
+      setPainelLigado(r.ligado);
+      if (!r.permissao) setDicaPainel("Libere “Sobrepor a outros apps” para o Vindex na tela que abriu, volte e toque de novo.");
+    } catch (e) { setDicaPainel(e instanceof Error ? e.message : String(e)); }
+  }
+
   return (
     <div className="space-y-4">
+      {painel && (
+        <Cartao titulo="Widget de desempenho">
+          <p className="mb-3 text-sm text-suave">{motor.plataforma === "windows" ? "Uma janelinha sempre visível na área de trabalho com CPU, RAM, temperatura e o botão Liberar RAM." : "RAM, temperatura e bateria ao vivo por cima de qualquer app, com toque para liberar RAM."}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Botao onClick={() => void alternarPainel()}>{painelLigado ? (motor.plataforma === "windows" ? "Fechar widget" : "Desligar painel na tela") : (motor.plataforma === "windows" ? "Mostrar widget na área de trabalho" : "Mostrar painel na tela")}</Botao>
+            {motor.plataforma === "android" && <p className="text-xs text-suave">Toque no painel para liberar RAM, arraste para mover e segure para fechar. Para o widget da tela inicial: segure um espaço vazio da tela inicial › Widgets › Vindex.</p>}
+          </div>
+          {dicaPainel && <p className="mt-2 text-xs text-amber-300">{dicaPainel}</p>}
+        </Cartao>
+      )}
       <Cartao titulo="O que você quer otimizar?" acao={<Botao className="!min-h-9 !px-3 text-xs" onClick={() => setMarcados(todos ? new Set() : new Set((linhas ?? []).map((l) => l.alvo.id)))}>{todos ? "Desmarcar tudo" : "Marcar tudo"}</Botao>}>
         {!linhas ? <p className="text-sm text-suave">Calculando o que dá para limpar…</p> : linhas.length === 0 ? <p className="text-sm text-suave">Nenhuma pasta de limpeza encontrada neste aparelho.</p> : (
           <ul className="space-y-2">{linhas.map((l) => (

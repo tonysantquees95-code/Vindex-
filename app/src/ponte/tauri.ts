@@ -25,6 +25,7 @@ export async function motorTauri(): Promise<Motor> {
     planejarLimpeza: (alvos) => c("planejar_limpeza", { alvos }),
     executarLimpeza: (alvos, simulacao = false) => c("executar_limpeza", { alvos, simulacao }),
     otimizarMemoria: () => c("otimizar_memoria"),
+    painel: { estado: async () => ({ ligado: await invoke<boolean>("widget_aberto"), permissao: true }), alternar: async () => ({ ligado: await invoke<boolean>("widget_alternar"), permissao: true }) },
     pastasConhecidas: () => c("pastas_conhecidas"),
     escolherArquivo: async () => {
       const r = await open({ multiple: false, filters: [{ name: "Arquivos compactados", extensions: ["zip", "tar", "gz", "tgz"] }] });

@@ -45,6 +45,7 @@ export function motorAndroid(): Motor {
     planejarLimpeza: (alvos) => c("planejar_limpeza", { alvos }),
     executarLimpeza: (alvos, simulacao = false) => c("executar_limpeza", { alvos, simulacao }),
     otimizarMemoria: () => c("otimizar_memoria"),
+    painel: { estado: () => c("painel_estado"), alternar: () => c("painel_alternar") },
     pastasConhecidas: async () => [
       { id: "downloads", rotulo: "Downloads", caminho: "/storage/emulated/0/Download" },
       { id: "documentos", rotulo: "Documentos", caminho: "/storage/emulated/0/Documents" },
