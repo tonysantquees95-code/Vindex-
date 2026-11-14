@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useMotor } from "../estado";
 import { bytes } from "../formato";
-import type { AlvoDeLimpeza, ProgramaInicial } from "../ponte";
+import type { AlvoDeLimpeza } from "../ponte";
 import { Aviso, Botao, Cartao } from "../ui";
 
 interface Linha { alvo: AlvoDeLimpeza; tamanho: number }
@@ -12,7 +12,6 @@ export function Otimizar() {
   const [linhas, setLinhas] = useState<Linha[] | null>(null);
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [memoria, setMemoria] = useState(true);
-  const [iniciais, setIniciais] = useState<ProgramaInicial[]>([]);
   const [ocupado, setOcupado] = useState(false);
   const [resultado, setResultado] = useState("");
   const [erro, setErro] = useState("");
@@ -30,7 +29,6 @@ export function Otimizar() {
   }, [motor]);
 
   useEffect(() => { void analisar(); }, [analisar]);
-  useEffect(() => { if (motor.recursos.inicializacao) void motor.programasIniciais().then(setIniciais).catch(() => undefined); }, [motor]);
 
   const total = (linhas ?? []).filter((l) => marcados.has(l.alvo.id)).reduce((s, l) => s + l.tamanho, 0);
   const alternar = (id: string) => setMarcados((m) => { const n = new Set(m); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -107,16 +105,6 @@ export function Otimizar() {
       {erro && <Aviso tom="erro">{erro}</Aviso>}
       {resultado && <Aviso tom="ok">{resultado}</Aviso>}
 
-      {motor.recursos.inicializacao && (
-        <Cartao titulo={`Programas que iniciam com o Windows (${iniciais.length})`}>
-          {iniciais.length === 0 ? <p className="text-sm text-suave">Nenhum programa encontrado na inicialização.</p> : (
-            <ul className="space-y-2">{iniciais.map((p) => (
-              <li key={p.origem + p.nome} className="rounded-xl border border-borda px-3 py-2"><div className="flex justify-between gap-2 text-sm"><span className="truncate">{p.nome}</span><span className="flex-none text-xs text-suave">{p.origem}</span></div><div className="truncate text-xs text-suave">{p.comando}</div></li>
-            ))}</ul>
-          )}
-          <p className="mt-2 text-xs text-suave">Quanto menos programas iniciando junto, mais rápido o Windows liga. Para desativar: Gerenciador de Tarefas (Ctrl+Shift+Esc) › Aplicativos de inicialização.</p>
-        </Cartao>
-      )}
     </div>
   );
 }

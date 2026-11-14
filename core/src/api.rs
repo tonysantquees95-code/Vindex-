@@ -1,5 +1,5 @@
 //! Interface única (JSON) usada pelo app de Windows e pelos testes. O Android implementa o mesmo contrato em Kotlin.
-use crate::{arquivos, explorador, hardware, limpeza, organizador, programas, regras, seguranca};
+use crate::{arquivos, desempenho, explorador, hardware, limpeza, organizador, programas, regras, seguranca};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -140,6 +140,12 @@ pub fn executar(comando: &str, args: &Value) -> Result<Value, String> {
         }
         "verificar_arquivos" => para(seguranca::verificar_arquivos(&raizes(args)?, u64_de(args, "profundidade", 4) as usize)),
         "programas_iniciais" => para(seguranca::programas_iniciais()),
+        "inicializacao_analisar" => para(desempenho::inicializacao()?),
+        "inicializacao_definir" => para(desempenho::definir_inicio(args.get("local").and_then(|x| x.as_str()).unwrap_or(""), args.get("nome").and_then(|x| x.as_str()).unwrap_or(""), bool_de(args, "ligado", true))?),
+        "discos_listar" => para(desempenho::volumes()?),
+        "disco_analisar" => para(desempenho::analisar_disco(args.get("letra").and_then(|x| x.as_str()).unwrap_or(""))?),
+        "disco_otimizar" => para(desempenho::otimizar_disco(args.get("letra").and_then(|x| x.as_str()).unwrap_or(""))?),
+        "ram_estado" => para(desempenho::ram(u64_de(args, "quantos", 8) as usize)),
         "verificar_hosts" => para(seguranca::verificar_hosts()),
         "programas_listar" => para(programas::listar()?),
         "programas_desinstalar" => para(programas::desinstalar(args.get("id").and_then(|x| x.as_str()).unwrap_or(""), bool_de(args, "silencioso", false))?),

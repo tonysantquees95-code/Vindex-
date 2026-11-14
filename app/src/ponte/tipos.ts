@@ -46,13 +46,27 @@ export interface EstadoProtecao {
 export interface Achado { caminho: string; nivel: "alto" | "medio" | "baixo"; motivo: string }
 export interface ResultadoVerificacao { analisados: number; achados: Achado[] }
 export interface ProgramaInicial { nome: string; comando: string; origem: string }
+export interface ItemInicio {
+  id: string; nome: string; comando: string; origem: string; local: string; ligado: boolean;
+  impacto: "alto" | "medio" | "baixo" | "nao_medido"; atraso_ms: number | null; protegido: boolean;
+}
+export interface Inicializacao {
+  suportado: boolean; boot_ms: number | null; boot_quando: string | null; historico_ms: number[];
+  itens: ItemInicio[]; economia_possivel_ms: number; nota: string;
+}
+export interface VolumeDisco { letra: string; rotulo: string; sistema_arquivos: string; total: number; livre: number; tipo: "HDD" | "SSD" | "Desconhecido" }
+export interface AnaliseDisco { letra: string; tipo: string; fragmentado_pct: number | null; acao: "desfragmentar" | "trim" | "nada" | "automatico"; motivo: string }
+export interface ResultadoDisco { letra: string; acao: string; resumo: string }
+export interface EstadoRam { total: number; disponivel: number; percentual: number; maiores: { pid: number; nome: string; memoria: number }[] }
 export interface AlvoDeLimpeza { id: string; rotulo: string; pasta: string }
 export interface PlanoDeLimpeza { total_bytes: number; arquivos: number; por_alvo: [string, number][] }
 export interface InicioPeloMenu { modo: "escolher" | "aqui"; arquivo: string }
 
 /** O que cada plataforma sabe fazer; a interface esconde o que não existe. */
 export interface Recursos {
-  extrair: boolean; defender: boolean; inicializacao: boolean; abrirPasta: boolean;
+  extrair: boolean; defender: boolean; inicializacao: boolean;
+  /** Windows: inicialização, otimização de disco e RAM em uma aba só */
+  desempenho: boolean; abrirPasta: boolean;
   /** abre arquivos com o programa padrão */
   abrirArquivos: boolean;
   /** verificar arquivos suspeitos nas pastas (Windows e Android) */
@@ -130,6 +144,16 @@ export interface Motor {
   defenderVarrer(pasta?: string): Promise<{ resumo: string }>;
   verificarArquivos(raizes: string[]): Promise<ResultadoVerificacao>;
   programasIniciais(): Promise<ProgramaInicial[]>;
+  /** Windows: tempo de boot e programas que iniciam com o Windows, com o impacto de cada um. */
+  inicializacao(): Promise<Inicializacao>;
+  /** Windows: liga ou desliga um programa da inicialização (reversível; nada é apagado). */
+  definirInicio(local: string, nome: string, ligado: boolean): Promise<string>;
+  /** Windows: discos fixos com o tipo (HDD/SSD). */
+  discos(): Promise<VolumeDisco[]>;
+  analisarDisco(letra: string): Promise<AnaliseDisco>;
+  /** HDD desfragmenta quando precisa; SSD faz TRIM; o resto o Windows decide. */
+  otimizarDisco(letra: string): Promise<ResultadoDisco>;
+  ramEstado(quantos?: number): Promise<EstadoRam>;
   verificarHosts(): Promise<string[]>;
   permissoes(): Promise<Permissao[]>;
   pedirPermissao(id: string): Promise<void>;

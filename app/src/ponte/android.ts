@@ -30,7 +30,7 @@ export function motorAndroid(): Motor {
   const c = async <T>(comando: string, args: Record<string, unknown> = {}): Promise<T> => JSON.parse((await Vindex.motor({ comando, args: JSON.stringify(args) })).resultado) as T;
   return {
     plataforma: "android",
-    recursos: { extrair: true, defender: false, inicializacao: false, abrirPasta: false, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: true, suite: true, permissoes: true, atualizaSozinho: true, desinstalar: true, restosDeProgramas: false, desinstalarSilencioso: false },
+    recursos: { extrair: true, defender: false, inicializacao: false, desempenho: false, abrirPasta: false, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: true, suite: true, permissoes: true, atualizaSozinho: true, desinstalar: true, restosDeProgramas: false, desinstalarSilencioso: false },
     diagnostico: (processos = 8) => c("diagnostico", { processos }),
     otimizarTudo: (simulacao = false) => c("otimizar_tudo", { simulacao }),
     escolherPasta: async () => (await Vindex.escolherPasta()).pasta,
@@ -78,6 +78,12 @@ export function motorAndroid(): Motor {
     defenderVarrer: indisponivel,
     verificarArquivos: (raizes) => c("verificar_arquivos", { raizes }),
     programasIniciais: async () => [],
+    inicializacao: async () => ({ suportado: false, boot_ms: null, boot_quando: null, historico_ms: [], itens: [], economia_possivel_ms: 0, nota: "" }),
+    definirInicio: async () => { throw new Error("Isto funciona no Windows."); },
+    discos: async () => [],
+    analisarDisco: async () => { throw new Error("Isto funciona no Windows."); },
+    otimizarDisco: async () => { throw new Error("Isto funciona no Windows."); },
+    ramEstado: async () => ({ total: 0, disponivel: 0, percentual: 0, maiores: [] }),
     verificarHosts: async () => [],
     permissoes: async () => (await Vindex.permissoes()).lista,
     pedirPermissao: (id) => Vindex.pedirPermissao({ id }),

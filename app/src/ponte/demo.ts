@@ -18,7 +18,7 @@ export function motorDemo(): Motor {
   const vazio = { movidos: [], falhas: ["Modo demonstração: abra o app do Windows ou do Android para mexer nos arquivos."], simulacao: true };
   return {
     plataforma: "demonstracao",
-    recursos: { extrair: false, defender: false, inicializacao: false, abrirPasta: false, abrirArquivos: false, arquivosSuspeitos: false, verificarApps: false, suite: false, permissoes: false, atualizaSozinho: false, desinstalar: false, restosDeProgramas: false, desinstalarSilencioso: false },
+    recursos: { extrair: false, defender: false, inicializacao: false, desempenho: false, abrirPasta: false, abrirArquivos: false, arquivosSuspeitos: false, verificarApps: false, suite: false, permissoes: false, atualizaSozinho: false, desinstalar: false, restosDeProgramas: false, desinstalarSilencioso: false },
     diagnostico: async () => diag(),
     otimizarTudo: async () => ({ limpeza: { apagados: 0, liberado_bytes: 0, falhas: [], simulacao: true }, memoria: { suportado: false, processos_ajustados: 0, liberado_bytes: 0, nota: "Demonstração." }, ram_antes: 55, ram_depois: 55 }),
     escolherPasta: async () => null,
@@ -37,7 +37,14 @@ export function motorDemo(): Motor {
     inicioPeloMenu: async () => null, abrirPasta: async () => undefined, abrirLink: async (u) => { window.open(u, "_blank"); },
     estadoProtecao: async () => ({ suportado: false, antivirus_ligado: null, tempo_real_ligado: null, assinaturas_dias: null, firewall: [], nota: "Modo demonstração." }),
     defenderVarrer: async () => { throw new Error("Modo demonstração."); },
-    verificarArquivos: async () => ({ analisados: 0, achados: [] }), programasIniciais: async () => [], verificarHosts: async () => [],
+    verificarArquivos: async () => ({ analisados: 0, achados: [] }), programasIniciais: async () => [],
+inicializacao: async () => ({ suportado: false, boot_ms: null, boot_quando: null, historico_ms: [], itens: [], economia_possivel_ms: 0, nota: "" }),
+    definirInicio: async () => { throw new Error("Isto funciona no Windows."); },
+    discos: async () => [],
+    analisarDisco: async () => { throw new Error("Isto funciona no Windows."); },
+    otimizarDisco: async () => { throw new Error("Isto funciona no Windows."); },
+    ramEstado: async () => ({ total: 0, disponivel: 0, percentual: 0, maiores: [] }),
+    verificarHosts: async () => [],
     permissoes: async () => [], pedirPermissao: async () => undefined, abrirConfiguracao: async () => undefined,
     verificarApps: async () => ({ analisados: 0, achados: [] }), appsDaSuite: async () => [], instalarDaSuite: async () => { throw new Error("Modo demonstração."); }, verificarApks: async () => ({ analisados: 0, achados: [] }), appsInstalados: async () => [], programas: async () => [], desinstalarPrograma: async () => { throw new Error("Modo demonstração."); }, limparRestos: async () => ({ apagados: 0, bytes: 0, falhas: [] }), detalhesPrograma: async () => undefined, instalarAtualizacao: async () => { throw new Error("Modo demonstração."); }
   };
