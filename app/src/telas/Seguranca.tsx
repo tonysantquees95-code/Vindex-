@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useMotor, usePastas } from "../estado";
 import { nomeDoArquivo, pastaDoArquivo } from "../formato";
 import { analisarLink, type AnaliseDeLink } from "../link";
 import type { EstadoProtecao, ResultadoVerificacao } from "../ponte";
-import { Aviso, Botao, Cartao } from "../ui";
+import { Icone, type NomeIcone } from "../icones";
+import { Aviso, AnelDeSaude, Botao, Cartao } from "../ui";
 import { Pastas } from "./Pastas";
 import { SuiteApps } from "./SuiteApps";
 import { RelatorioSeguranca } from "./RelatorioSeguranca";
@@ -37,45 +38,25 @@ export function Seguranca() {
     try { return await f(); } catch (e) { setErro(e instanceof Error ? e.message : typeof e === "string" ? e : "Não deu certo."); return null; } finally { setOcupado(""); }
   }
 
-  return (
-    <div className="space-y-4">
-      {estado?.suportado && estado.itens && (
-        <Cartao titulo="Proteção do aparelho">
-          <ul className="space-y-2">{estado.itens.map((i) => (
-            <li key={i.rotulo} className="rounded-xl border border-borda px-3 py-2 text-sm">
-              <div className="flex items-center justify-between gap-2"><span>{i.rotulo}</span><span className={`flex-none text-xs ${i.ok == null ? "text-suave" : i.ok ? "text-ok" : "text-erro"}`}>{i.ok == null ? "confira" : i.ok ? "ok" : "ajustar"}</span></div>
-              <div className="text-xs text-suave">{i.detalhe}</div>
-              {i.config && i.ok !== true && <button className="mt-1 text-xs text-neon underline" onClick={() => void motor.abrirConfiguracao(i.config!)}>Abrir configuração</button>}
-            </li>
-          ))}</ul>
-          {estado.nota && <p className="mt-2 text-xs text-suave">{estado.nota}</p>}
-        </Cartao>
-      )}
-      {estado?.suportado && !estado.itens && (
-        <Cartao titulo="Proteção do Windows">
-          <ul className="space-y-2">
-            <Selo ok={estado.antivirus_ligado} texto="Antivírus (Microsoft Defender)" />
-            <Selo ok={estado.tempo_real_ligado} texto="Proteção em tempo real" />
-            {estado.firewall.map(([nome, ligado]) => <Selo key={nome} ok={ligado} texto={`Firewall · perfil ${nome}`} />)}
-            {estado.assinaturas_dias != null && <li className="flex justify-between rounded-xl border border-borda px-3 py-2 text-sm"><span>Definições de vírus</span><span className={estado.assinaturas_dias > 7 ? "text-aviso" : "text-ok"}>{estado.assinaturas_dias === 0 ? "atualizadas hoje" : `${estado.assinaturas_dias} dia(s) de atraso`}</span></li>}
-          </ul>
-          {estado.nota && <p className="mt-2 text-xs text-suave">{estado.nota}</p>}
-          {motor.recursos.defender && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Botao variante="primario" disabled={!!ocupado} onClick={async () => { const r = await rodar("rapida", () => motor.defenderVarrer()); if (r) setMsg(r.resumo); }}>{ocupado === "rapida" ? "Varrendo… (pode demorar)" : "Varredura rápida do Defender"}</Botao>
-              <Botao disabled={!!ocupado} onClick={async () => { const p = await motor.escolherPasta(); if (p) { const r = await rodar("pasta", () => motor.defenderVarrer(p)); if (r) setMsg(r.resumo); } }}>{ocupado === "pasta" ? "Varrendo…" : "Varrer uma pasta…"}</Botao>
-            </div>
-          )}
-        </Cartao>
-      )}
-      {estado && !estado.suportado && estado.nota && <Aviso>{estado.nota}</Aviso>}
-      {erro && <Aviso tom="erro">{erro}</Aviso>}
-      {msg && <Aviso tom="ok">{msg}</Aviso>}
+  const [aberto, setAberto] = useState<string | null>(null);
 
-      {motor.recursos.suite && <SuiteApps />}
+  // nota de proteção: quantos dos itens verificados do aparelho estão em ordem
+  const lista: { rotulo: string; ok: boolean | null; detalhe: string; config: string | null }[] = estado?.suportado
+    ? estado.itens ?? [
+        { rotulo: "Antivírus (Microsoft Defender)", ok: estado.antivirus_ligado, detalhe: "", config: null },
+        { rotulo: "Proteção em tempo real", ok: estado.tempo_real_ligado, detalhe: "", config: null },
+        ...estado.firewall.map(([n, l]) => ({ rotulo: `Firewall · perfil ${n}`, ok: l, detalhe: "", config: null })),
+        ...(estado.assinaturas_dias != null ? [{ rotulo: "Definições de vírus", ok: estado.assinaturas_dias <= 7, detalhe: estado.assinaturas_dias === 0 ? "atualizadas hoje" : `${estado.assinaturas_dias} dia(s) de atraso`, config: null }] : [])
+      ]
+    : [];
+  const lidos = lista.filter((i) => i.ok != null);
+  const ajustar = lista.filter((i) => i.ok === false);
+  const nota = lidos.length ? Math.round((lidos.filter((i) => i.ok).length / lidos.length) * 100) : 100;
 
-      {motor.recursos.suite && (
-        <Cartao titulo="APKs baixados (antes de instalar)">
+  const FERRAMENTAS: { id: string; icone: NomeIcone; titulo: string; texto: string; visivel: boolean; corpo: ReactNode }[] = [
+    { id: "suite", icone: "atualizar", titulo: "Apps da Vetorial Tech", texto: "Versões e atualização dos seus apps", visivel: !!motor.recursos.suite, corpo: <SuiteApps /> },
+    { id: "apks", icone: "instaladores", titulo: "APKs baixados", texto: "Confere antes de instalar", visivel: !!motor.recursos.suite, corpo: (
+<Cartao titulo="APKs baixados (antes de instalar)">
           <p className="mb-3 text-sm text-suave">O Vindex olha os APKs que estão nas pastas abaixo sem instalar nada: confere se o arquivo abre, quem assinou e que poderes ele pede (ler a tela, desenhar por cima, ler SMS…). Os suspeitos vão para a quarentena, que dá para desfazer.</p>
           <Pastas pastas={pastas} adicionar={adicionar} remover={remover} />
           <Botao className="mt-3" variante="primario" disabled={!pastas.length || !!ocupado} onClick={async () => { const r = await rodar("apks", () => motor.verificarApks(pastas)); if (r) setApks(r); }}>{ocupado === "apks" ? "Verificando…" : "Verificar APKs"}</Botao>
@@ -92,12 +73,10 @@ export function Seguranca() {
             </div>
           )}
         </Cartao>
-      )}
-
-      {motor.recursos.suite && <RelatorioSeguranca />}
-
-      {motor.recursos.verificarApps && (
-        <Cartao titulo="Apps instalados">
+    ) },
+    { id: "relatorio", icone: "recentes", titulo: "Relatório da semana", texto: "Resumo dos apps do aparelho", visivel: !!motor.recursos.suite, corpo: <RelatorioSeguranca /> },
+    { id: "apps", icone: "apps", titulo: "Apps instalados", texto: "Fora da loja e poderes perigosos", visivel: !!motor.recursos.verificarApps, corpo: (
+<Cartao titulo="Apps instalados">
           <p className="mb-3 text-sm text-suave">O Vindex confere os apps que você instalou: os que vieram de fora da loja e os que pedem poderes perigosos (ler a tela, desenhar por cima de outros apps, ler SMS ou notificações).</p>
           <Botao variante="primario" disabled={!!ocupado} onClick={async () => { const r = await rodar("apps", () => motor.verificarApps()); if (r) setApps(r); }}>{ocupado === "apps" ? "Verificando…" : "Verificar apps"}</Botao>
           {apps && (
@@ -116,10 +95,9 @@ export function Seguranca() {
             </div>
           )}
         </Cartao>
-      )}
-
-      {motor.recursos.arquivosSuspeitos && (
-        <Cartao titulo="Verificação de arquivos suspeitos">
+    ) },
+    { id: "arquivos", icone: "arquivos", titulo: "Arquivos suspeitos", texto: "Golpes escondidos nas pastas", visivel: !!motor.recursos.arquivosSuspeitos, corpo: (
+<Cartao titulo="Verificação de arquivos suspeitos">
           <p className="mb-3 text-sm text-suave">O Vindex olha o nome, o tipo e o começo dos arquivos das pastas abaixo e avisa o que parece golpe: extensão dupla (fatura.pdf.exe), scripts, atalhos e programas minúsculos. Não executa nada. <b>Não substitui o antivírus.</b></p>
           <Pastas pastas={pastas} adicionar={adicionar} remover={remover} />
           <Botao className="mt-3" variante="primario" disabled={!pastas.length || !!ocupado} onClick={async () => { const r = await rodar("verif", () => motor.verificarArquivos(pastas)); if (r) setVerif(r); }}>{ocupado === "verif" ? "Verificando…" : "Verificar agora"}</Botao>
@@ -137,8 +115,8 @@ export function Seguranca() {
             </div>
           )}
         </Cartao>
-      )}
-
+    ) },
+    { id: "link", icone: "rede", titulo: "Link seguro?", texto: "Analise um link antes de abrir", visivel: true, corpo: (
       <Cartao titulo="Protetor web: esse link é seguro?">
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); setAnalise(analisarLink(link)); }}>
           <input className={campo} placeholder="Cole aqui o link que você recebeu" value={link} onChange={(e) => setLink(e.target.value)} aria-label="Link para analisar" />
@@ -152,15 +130,15 @@ export function Seguranca() {
         )}
         <p className="mt-2 text-xs text-suave">A análise é feita aqui no seu aparelho; o link não é enviado para ninguém.</p>
       </Cartao>
-
-      {motor.recursos.defender && (
-        <Cartao titulo="Arquivo “hosts” do Windows">
+    ) },
+    { id: "hosts", icone: "regras", titulo: "Arquivo hosts", texto: "Redirecionamentos escondidos", visivel: !!motor.recursos.defender, corpo: (
+<Cartao titulo="Arquivo “hosts” do Windows">
           <p className="mb-2 text-sm text-suave">Golpes às vezes mudam esse arquivo para levar você a um site falso quando digita o endereço certo.</p>
           <Botao disabled={!!ocupado} onClick={async () => { const r = await rodar("hosts", () => motor.verificarHosts()); if (r) setHosts(r); }}>Verificar</Botao>
           {hosts && (hosts.length === 0 ? <div className="mt-3"><Aviso tom="ok">Nenhum redirecionamento estranho.</Aviso></div> : <div className="mt-3"><Aviso>Há {hosts.length} redirecionamento(s). Se você não criou, desconfie:<ul className="mt-1 list-disc pl-5 text-xs">{hosts.map((h) => <li key={h} className="break-all">{h}</li>)}</ul></Aviso></div>)}
         </Cartao>
-      )}
-
+    ) },
+    { id: "dicas", icone: "cofre", titulo: "Dicas de proteção", texto: "O que protege de verdade", visivel: true, corpo: (
       <Cartao titulo="Dicas que protegem de verdade">
         <ul className="list-disc space-y-1 pl-5 text-sm text-suave">
           <li>Use a verificação em duas etapas nas suas contas (e-mail, banco, redes sociais).</li>
@@ -170,6 +148,70 @@ export function Seguranca() {
           <li>Guarde senhas em um cofre, e não repita a mesma senha em sites diferentes.</li>
         </ul>
       </Cartao>
+    ) }
+  ].filter((f) => f.visivel);
+  const atual = FERRAMENTAS.find((f) => f.id === aberto);
+
+  return (
+    <div className="space-y-4">
+      {erro && <Aviso tom="erro">{erro}</Aviso>}
+      {msg && <Aviso tom="ok">{msg}</Aviso>}
+      {atual ? (
+        <>
+          <button className="inline-flex min-h-11 items-center gap-2 rounded-xl px-1 text-sm text-neon" onClick={() => setAberto(null)}>← Segurança</button>
+          <h2 className="text-lg font-semibold">{atual.titulo}</h2>
+          {atual.corpo}
+        </>
+      ) : (
+        <>
+          {estado?.suportado ? (
+            <Cartao className="text-center">
+              <p className="text-sm text-suave">{estado.itens ? "Proteção do aparelho" : "Proteção do Windows"}</p>
+              <div className="mt-3"><AnelDeSaude valor={nota} rotulo="proteção" /></div>
+              <p className="mt-2 text-sm text-suave">{ajustar.length === 0 ? "Tudo em ordem por aqui." : `${ajustar.length} ponto${ajustar.length === 1 ? "" : "s"} para ajustar.`}</p>
+              {ajustar.length > 0 && (
+                <ul className="mt-3 space-y-2 text-left">{ajustar.map((i) => (
+                  <li key={i.rotulo} className="rounded-2xl border border-erro/30 bg-erro/10 px-3 py-2 text-sm">
+                    <div className="font-medium text-erro">{i.rotulo}</div>
+                    {i.detalhe && <div className="text-xs text-suave">{i.detalhe}</div>}
+                    {i.config && <button className="mt-1 text-xs text-neon underline" onClick={() => void motor.abrirConfiguracao(i.config!)}>Abrir configuração</button>}
+                  </li>
+                ))}</ul>
+              )}
+              {lista.length > ajustar.length && (
+                <details className="mt-3 text-left">
+                  <summary className="cursor-pointer text-sm text-suave">Ver tudo que foi conferido ({lista.length})</summary>
+                  <ul className="mt-2 space-y-2">{lista.filter((i) => i.ok !== false).map((i) => (
+                    <li key={i.rotulo} className="rounded-xl border border-borda px-3 py-2 text-sm">
+                      <div className="flex items-center justify-between gap-2"><span>{i.rotulo}</span><span className={`flex-none text-xs ${i.ok == null ? "text-suave" : "text-ok"}`}>{i.ok == null ? "confira" : "ok"}</span></div>
+                      {i.detalhe && <div className="text-xs text-suave">{i.detalhe}</div>}
+                      {i.config && i.ok == null && <button className="mt-1 text-xs text-neon underline" onClick={() => void motor.abrirConfiguracao(i.config!)}>Abrir configuração</button>}
+                    </li>
+                  ))}</ul>
+                </details>
+              )}
+              {estado.nota && <p className="mt-3 text-xs text-suave">{estado.nota}</p>}
+              {motor.recursos.defender && (
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <Botao variante="primario" disabled={!!ocupado} onClick={async () => { const r = await rodar("rapida", () => motor.defenderVarrer()); if (r) setMsg(r.resumo); }}>{ocupado === "rapida" ? "Varrendo… (pode demorar)" : "Varredura rápida"}</Botao>
+                  <Botao disabled={!!ocupado} onClick={async () => { const p = await motor.escolherPasta(); if (p) { const r = await rodar("pasta", () => motor.defenderVarrer(p)); if (r) setMsg(r.resumo); } }}>{ocupado === "pasta" ? "Varrendo…" : "Varrer uma pasta…"}</Botao>
+                </div>
+              )}
+            </Cartao>
+          ) : (
+            estado && estado.nota && <Aviso>{estado.nota}</Aviso>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            {FERRAMENTAS.map((f) => (
+              <button key={f.id} onClick={() => setAberto(f.id)} className="flex flex-col items-start gap-2 rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.015] p-4 text-left transition hover:bg-white/5 active:scale-[0.98]">
+                <span className="grid h-10 w-10 place-items-center rounded-2xl bg-neon/15 text-neon"><Icone nome={f.icone} tam={22} /></span>
+                <span className="text-sm font-semibold">{f.titulo}</span>
+                <span className="text-xs text-suave">{f.texto}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
