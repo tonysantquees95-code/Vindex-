@@ -31,7 +31,7 @@ fn powershell(script: &str) -> Result<String, String> {
 /// Mensagem em português para o erro mais comum (falta de permissão de administrador).
 pub fn traduzir_erro(texto: &str) -> String {
     let t = texto.to_lowercase();
-    if ["administrador", "administrator", "acesso negado", "access is denied", "elevad", "privilég", "privileg"].iter().any(|p| t.contains(p)) {
+    if ["administrador", "administrator", "acesso negado", "access is denied", "access denied", "categoryinfo : permis", "elevad", "privilég", "privileg"].iter().any(|p| t.contains(p)) {
         "O Windows pediu permissão de administrador. Feche o Vindex e abra de novo com botão direito → Executar como administrador.".into()
     } else {
         let limpo: String = texto.trim().chars().take(300).collect();
@@ -552,6 +552,7 @@ mod testes {
     fn erro_de_permissao_vira_orientacao() {
         assert!(traduzir_erro("Acesso negado.").contains("administrador"));
         assert!(traduzir_erro("Access is denied").contains("administrador"));
+        assert!(traduzir_erro("Optimize-Volume : Access denied Activity ID: {59d9} + CategoryInfo : Permis").contains("administrador"));
         assert_eq!(traduzir_erro("outro erro"), "outro erro");
     }
 
