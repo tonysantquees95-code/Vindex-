@@ -54,8 +54,8 @@ export function Seguranca() {
   const nota = lidos.length ? Math.round((lidos.filter((i) => i.ok).length / lidos.length) * 100) : 100;
 
   const FERRAMENTAS: { id: string; icone: NomeIcone; titulo: string; texto: string; visivel: boolean; corpo: ReactNode }[] = [
-    { id: "suite", icone: "atualizar", titulo: "Apps da Vetorial Tech", texto: "Versões e atualização dos seus apps", visivel: !!motor.recursos.suite, corpo: <SuiteApps /> },
-    { id: "apks", icone: "instaladores", titulo: "APKs baixados", texto: "Confere antes de instalar", visivel: !!motor.recursos.suite, corpo: (
+    { id: "suite", icone: "atualizar" as const, titulo: "Apps da Vetorial Tech", texto: "Versões e atualização dos seus apps", visivel: !!motor.recursos.suite, corpo: <SuiteApps /> },
+    { id: "apks", icone: "instaladores" as const, titulo: "APKs baixados", texto: "Confere antes de instalar", visivel: !!motor.recursos.suite, corpo: (
 <Cartao titulo="APKs baixados (antes de instalar)">
           <p className="mb-3 text-sm text-suave">O Vindex olha os APKs que estão nas pastas abaixo sem instalar nada: confere se o arquivo abre, quem assinou e que poderes ele pede (ler a tela, desenhar por cima, ler SMS…). Os suspeitos vão para a quarentena, que dá para desfazer.</p>
           <Pastas pastas={pastas} adicionar={adicionar} remover={remover} />
@@ -74,8 +74,8 @@ export function Seguranca() {
           )}
         </Cartao>
     ) },
-    { id: "relatorio", icone: "recentes", titulo: "Relatório da semana", texto: "Resumo dos apps do aparelho", visivel: !!motor.recursos.suite, corpo: <RelatorioSeguranca /> },
-    { id: "apps", icone: "apps", titulo: "Apps instalados", texto: "Fora da loja e poderes perigosos", visivel: !!motor.recursos.verificarApps, corpo: (
+    { id: "relatorio", icone: "recentes" as const, titulo: "Relatório da semana", texto: "Resumo dos apps do aparelho", visivel: !!motor.recursos.suite, corpo: <RelatorioSeguranca /> },
+    { id: "apps", icone: "apps" as const, titulo: "Apps instalados", texto: "Fora da loja e poderes perigosos", visivel: !!motor.recursos.verificarApps, corpo: (
 <Cartao titulo="Apps instalados">
           <p className="mb-3 text-sm text-suave">O Vindex confere os apps que você instalou: os que vieram de fora da loja e os que pedem poderes perigosos (ler a tela, desenhar por cima de outros apps, ler SMS ou notificações).</p>
           <Botao variante="primario" disabled={!!ocupado} onClick={async () => { const r = await rodar("apps", () => motor.verificarApps()); if (r) setApps(r); }}>{ocupado === "apps" ? "Verificando…" : "Verificar apps"}</Botao>
@@ -96,7 +96,7 @@ export function Seguranca() {
           )}
         </Cartao>
     ) },
-    { id: "arquivos", icone: "arquivos", titulo: "Arquivos suspeitos", texto: "Golpes escondidos nas pastas", visivel: !!motor.recursos.arquivosSuspeitos, corpo: (
+    { id: "arquivos", icone: "arquivos" as const, titulo: "Arquivos suspeitos", texto: "Golpes escondidos nas pastas", visivel: !!motor.recursos.arquivosSuspeitos, corpo: (
 <Cartao titulo="Verificação de arquivos suspeitos">
           <p className="mb-3 text-sm text-suave">O Vindex olha o nome, o tipo e o começo dos arquivos das pastas abaixo e avisa o que parece golpe: extensão dupla (fatura.pdf.exe), scripts, atalhos e programas minúsculos. Não executa nada. <b>Não substitui o antivírus.</b></p>
           <Pastas pastas={pastas} adicionar={adicionar} remover={remover} />
@@ -116,7 +116,7 @@ export function Seguranca() {
           )}
         </Cartao>
     ) },
-    { id: "link", icone: "rede", titulo: "Link seguro?", texto: "Analise um link antes de abrir", visivel: true, corpo: (
+    { id: "link", icone: "rede" as const, titulo: "Link seguro?", texto: "Analise um link antes de abrir", visivel: true, corpo: (
       <Cartao titulo="Protetor web: esse link é seguro?">
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); setAnalise(analisarLink(link)); }}>
           <input className={campo} placeholder="Cole aqui o link que você recebeu" value={link} onChange={(e) => setLink(e.target.value)} aria-label="Link para analisar" />
@@ -131,14 +131,14 @@ export function Seguranca() {
         <p className="mt-2 text-xs text-suave">A análise é feita aqui no seu aparelho; o link não é enviado para ninguém.</p>
       </Cartao>
     ) },
-    { id: "hosts", icone: "regras", titulo: "Arquivo hosts", texto: "Redirecionamentos escondidos", visivel: !!motor.recursos.defender, corpo: (
+    { id: "hosts", icone: "regras" as const, titulo: "Arquivo hosts", texto: "Redirecionamentos escondidos", visivel: !!motor.recursos.defender, corpo: (
 <Cartao titulo="Arquivo “hosts” do Windows">
           <p className="mb-2 text-sm text-suave">Golpes às vezes mudam esse arquivo para levar você a um site falso quando digita o endereço certo.</p>
           <Botao disabled={!!ocupado} onClick={async () => { const r = await rodar("hosts", () => motor.verificarHosts()); if (r) setHosts(r); }}>Verificar</Botao>
           {hosts && (hosts.length === 0 ? <div className="mt-3"><Aviso tom="ok">Nenhum redirecionamento estranho.</Aviso></div> : <div className="mt-3"><Aviso>Há {hosts.length} redirecionamento(s). Se você não criou, desconfie:<ul className="mt-1 list-disc pl-5 text-xs">{hosts.map((h) => <li key={h} className="break-all">{h}</li>)}</ul></Aviso></div>)}
         </Cartao>
     ) },
-    { id: "dicas", icone: "cofre", titulo: "Dicas de proteção", texto: "O que protege de verdade", visivel: true, corpo: (
+    { id: "dicas", icone: "cofre" as const, titulo: "Dicas de proteção", texto: "O que protege de verdade", visivel: true, corpo: (
       <Cartao titulo="Dicas que protegem de verdade">
         <ul className="list-disc space-y-1 pl-5 text-sm text-suave">
           <li>Use a verificação em duas etapas nas suas contas (e-mail, banco, redes sociais).</li>
