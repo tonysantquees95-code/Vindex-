@@ -31,6 +31,9 @@ pub struct Programa {
     pub local: String,
     pub sistema: bool,
     pub silencioso: bool,
+    /// PNG pequeno em base64 (ícone do programa); ausente quando o Windows não entrega um.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icone: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -134,6 +137,7 @@ pub fn interpretar(json: &str) -> Vec<Registro2> {
             local: texto(&v, "local").trim_matches('"').to_string(),
             desinstalar: un,
             quieto,
+            icone: texto(&v, "icone"),
         });
     }
     r.sort_by(|a, b| a.nome.to_lowercase().cmp(&b.nome.to_lowercase()));
@@ -152,6 +156,8 @@ pub struct Registro2 {
     pub local: String,
     pub desinstalar: String,
     pub quieto: String,
+    /// `DisplayIcon` do registro, como veio (`"C:\\x\\app.exe",0`).
+    pub icone: String,
 }
 
 impl From<Registro2> for Registro {
@@ -167,6 +173,7 @@ impl From<Registro2> for Registro {
                 local: r.local,
                 sistema: false,
                 silencioso: !r.quieto.is_empty(),
+                icone: None,
             },
             desinstalar: r.desinstalar,
             quieto: r.quieto,
@@ -178,7 +185,7 @@ const SCRIPT_LISTAR: &str = r#"[Console]::OutputEncoding=[Text.Encoding]::UTF8
 $r=@()
 foreach($k in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'){
  $r += Get-ItemProperty -Path $k -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName } | ForEach-Object {
-  [pscustomobject]@{ id=($_.PSPath -replace '^.*::',''); nome=$_.DisplayName; editora=$_.Publisher; versao=$_.DisplayVersion; kb=$_.EstimatedSize; data=$_.InstallDate; local=$_.InstallLocation; un=$_.UninstallString; quieto=$_.QuietUninstallString; sistema=$_.SystemComponent; pai=$_.ParentKeyName; nao_remover=$_.NoRemove } } }
+  [pscustomobject]@{ id=($_.PSPath -replace '^.*::',''); nome=$_.DisplayName; editora=$_.Publisher; versao=$_.DisplayVersion; kb=$_.EstimatedSize; data=$_.InstallDate; local=$_.InstallLocation; un=$_.UninstallString; quieto=$_.QuietUninstallString; sistema=$_.SystemComponent; pai=$_.ParentKeyName; nao_remover=$_.NoRemove; icone=$_.DisplayIcon } } }
 if($r.Count -eq 0){ '[]' } else { ConvertTo-Json -InputObject @($r) -Compress -Depth 3 }"#;
 
 fn powershell(script: &str) -> Result<String, String> {
@@ -196,7 +203,117 @@ fn ler_registros() -> Result<Vec<Registro>, String> {
         return Ok(Vec::new());
     }
     let saida = powershell(SCRIPT_LISTAR)?;
-    Ok(interpretar(&saida).into_iter().map(Registro::from).collect())
+    let brutos = interpretar(&saida);
+    let candidatos: Vec<Vec<String>> = brutos.iter().map(candidatos_de_icone).collect();
+    let icones = extrair_icones(&candidatos);
+    Ok(brutos
+        .into_iter()
+        .zip(icones)
+        .map(|(r, ic)| {
+            let mut reg = Registro::from(r);
+            if !ic.is_empty() {
+                reg.programa.icone = Some(ic);
+            }
+            reg
+        })
+        .collect())
+}
+
+/// Arquivo de onde sai o ícone, a partir do `DisplayIcon` (`"C:\x\app.exe",0`, `C:\x\app.exe,-3` ou `C:\x\app.ico`).
+pub fn arquivo_do_icone(bruto: &str) -> String {
+    let t = bruto.trim();
+    if let Some(resto) = t.strip_prefix('"') {
+        return resto.split('"').next().unwrap_or("").trim().to_string();
+    }
+    if let Some((a, b)) = t.rsplit_once(',') {
+        if b.trim().parse::<i32>().is_ok() {
+            return a.trim().to_string();
+        }
+    }
+    t.to_string()
+}
+
+/// O programa (.exe) citado num comando como `"C:\x\unins000.exe" /S`; vazio para MsiExec e afins.
+pub fn exe_do_comando(cmd: &str) -> String {
+    let t = cmd.trim();
+    let exe = if let Some(resto) = t.strip_prefix('"') {
+        resto.split('"').next().unwrap_or("").trim().to_string()
+    } else {
+        match t.to_ascii_lowercase().find(".exe") {
+            Some(i) => t[..i + 4].to_string(),
+            None => String::new(),
+        }
+    };
+    if exe.to_ascii_lowercase().contains("msiexec") {
+        String::new()
+    } else {
+        exe
+    }
+}
+
+/// Onde procurar o ícone, do mais certo ao menos certo: o do registro, a pasta do programa e o desinstalador.
+pub fn candidatos_de_icone(r: &Registro2) -> Vec<String> {
+    let mut c: Vec<String> = Vec::new();
+    for x in [arquivo_do_icone(&r.icone), r.local.clone(), exe_do_comando(&r.desinstalar)] {
+        if !x.is_empty() && !c.contains(&x) {
+            c.push(x);
+        }
+    }
+    c
+}
+
+const SCRIPT_ICONES: &str = r#"[Console]::OutputEncoding=[Text.Encoding]::UTF8
+Add-Type -AssemblyName System.Drawing
+$e=@(Get-Content -LiteralPath $arq -Raw -Encoding UTF8 | ConvertFrom-Json)
+$o=@()
+foreach($c in $e){
+ $b=''
+ foreach($p in @($c.c)){
+  if(-not $p){continue}
+  try{
+   $f=[Environment]::ExpandEnvironmentVariables([string]$p)
+   if(Test-Path -LiteralPath $f -PathType Container){
+    $x=Get-ChildItem -LiteralPath $f -Filter *.exe -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch 'unins|uninst|setup|update|crash|helper|install' } | Select-Object -First 1
+    if(-not $x){continue}
+    $f=$x.FullName
+   }
+   if(-not (Test-Path -LiteralPath $f -PathType Leaf)){continue}
+   $i=[System.Drawing.Icon]::ExtractAssociatedIcon($f)
+   if($i){
+    $bm=New-Object System.Drawing.Bitmap 48,48
+    $g=[System.Drawing.Graphics]::FromImage($bm)
+    $g.InterpolationMode=[System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $g.DrawImage($i.ToBitmap(),0,0,48,48)
+    $g.Dispose()
+    $ms=New-Object System.IO.MemoryStream
+    $bm.Save($ms,[System.Drawing.Imaging.ImageFormat]::Png)
+    $b=[Convert]::ToBase64String($ms.ToArray())
+    $bm.Dispose(); $i.Dispose()
+    break
+   }
+  }catch{}
+ }
+ $o+=$b
+}
+ConvertTo-Json -InputObject @($o) -Compress"#;
+
+/// Um ícone (PNG em base64) por programa, na mesma ordem; vazio quando não achou. Nunca falha a lista: sem ícone, a tela usa a inicial.
+fn extrair_icones(candidatos: &[Vec<String>]) -> Vec<String> {
+    let vazio = || vec![String::new(); candidatos.len()];
+    if !cfg!(windows) || candidatos.iter().all(|c| c.is_empty()) {
+        return vazio();
+    }
+    let itens: Vec<Value> = candidatos.iter().map(|c| serde_json::json!({ "c": c })).collect();
+    let Ok(json) = serde_json::to_string(&itens) else { return vazio() };
+    let arq = std::env::temp_dir().join(format!("vindex-icones-{}.json", std::process::id()));
+    if std::fs::write(&arq, json).is_err() {
+        return vazio();
+    }
+    let script = format!("$arq='{}'\n{}", arq.to_string_lossy().replace('\'', "''"), SCRIPT_ICONES);
+    let saida = powershell(&script);
+    let _ = std::fs::remove_file(&arq);
+    let lista: Vec<String> = saida.ok().and_then(|s| serde_json::from_str(s.trim().trim_start_matches('\u{feff}')).ok()).unwrap_or_default();
+    if lista.len() == candidatos.len() { lista } else { vazio() }
 }
 
 /// Lista os programas e guarda os comandos só aqui dentro.
@@ -472,12 +589,27 @@ mod testes {
     }
 
     #[test]
+    fn icone_vem_do_registro_da_pasta_ou_do_desinstalador() {
+        assert_eq!(arquivo_do_icone(r#""C:\Program Files\App\app.exe",0"#), r"C:\Program Files\App\app.exe");
+        assert_eq!(arquivo_do_icone(r"C:\App\app.exe,-12"), r"C:\App\app.exe");
+        assert_eq!(arquivo_do_icone(r"C:\App\icone.ico"), r"C:\App\icone.ico");
+        assert_eq!(arquivo_do_icone(""), "");
+        assert_eq!(exe_do_comando(r#""C:\App\unins000.exe" /SILENT"#), r"C:\App\unins000.exe");
+        assert_eq!(exe_do_comando(r"C:\App\unins000.exe /S"), r"C:\App\unins000.exe");
+        assert_eq!(exe_do_comando("MsiExec.exe /X{ABC}"), "");
+        assert_eq!(exe_do_comando("sem programa"), "");
+        let j = r#"[{"id":"A","nome":"Meu App","un":"\"C:\\x\\unins000.exe\"","icone":"\"C:\\x\\app.exe\",0","local":"C:\\x"}]"#;
+        let r = interpretar(j);
+        assert_eq!(candidatos_de_icone(&r[0]), vec![r"C:\x\app.exe".to_string(), r"C:\x".to_string(), r"C:\x\unins000.exe".to_string()]);
+    }
+
+    #[test]
     fn candidatas_acham_so_pastas_que_existem() {
         let t = tempfile::tempdir().unwrap();
         let raiz = t.path().join("AppData");
         std::fs::create_dir_all(raiz.join("Meu App/dados")).unwrap();
         std::fs::create_dir_all(raiz.join("Outro")).unwrap();
-        let p = Programa { id: "x".into(), nome: "Meu App 1.0".into(), editora: "Eu".into(), versao: "1.0".into(), bytes: 0, instalado_em: String::new(), local: String::new(), sistema: false, silencioso: false };
+        let p = Programa { id: "x".into(), nome: "Meu App 1.0".into(), editora: "Eu".into(), versao: "1.0".into(), bytes: 0, instalado_em: String::new(), local: String::new(), sistema: false, silencioso: false, icone: None };
         let c = candidatas(&p, &[raiz.clone()]);
         assert_eq!(c, vec![raiz.join("Meu App")]);
     }

@@ -119,7 +119,9 @@ export function Desinstalar() {
         {vistos.map((p) => (
           <li key={p.id} className="flex items-center gap-3 rounded-2xl border border-borda bg-white/[0.02] px-3 py-2 text-sm">
             <input type="checkbox" className="h-5 w-5 flex-none accent-[var(--color-neon)]" checked={marcados.includes(p.id)} onChange={() => alternar(p.id)} aria-label={`Marcar ${p.nome}`} />
-            {p.icone ? <img src={`data:image/png;base64,${p.icone}`} alt="" className="h-10 w-10 flex-none rounded-xl" loading="lazy" /> : null}
+            {p.icone
+              ? <img src={`data:image/png;base64,${p.icone}`} alt="" className="h-10 w-10 flex-none rounded-xl object-contain" loading="lazy" />
+              : <span aria-hidden className="grid h-10 w-10 flex-none place-items-center rounded-xl border border-borda bg-white/[0.04] text-sm font-semibold text-suave">{(p.nome.trim().charAt(0) || "?").toUpperCase()}</span>}
             <button className="min-w-0 flex-1 text-left" onClick={() => void motor.detalhesPrograma(p.id, p.local).catch(() => undefined)} title={android ? "Abrir as informações do app" : "Abrir a pasta do programa"}>
               <span className="block truncate font-medium">{p.nome}</span>
               <span className="block truncate text-xs text-suave">{[p.editora, p.versao && `v${p.versao}`, p.bytes ? bytes(p.bytes) : "", p.instaladoEm].filter(Boolean).join(" · ")}</span>
