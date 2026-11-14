@@ -7,7 +7,7 @@ export async function motorTauri(): Promise<Motor> {
   const c = <T>(comando: string, args: Record<string, unknown> = {}) => invoke<T>("motor", { comando, args });
   return {
     plataforma: "windows",
-    recursos: { extrair: true, defender: true, inicializacao: true, abrirPasta: true, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: false, suite: false, permissoes: false, atualizaSozinho: true },
+    recursos: { extrair: true, defender: true, inicializacao: true, abrirPasta: true, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: false, suite: false, permissoes: false, atualizaSozinho: true, desinstalar: true, restosDeProgramas: true, desinstalarSilencioso: true },
     diagnostico: (processos = 8) => c("diagnostico", { processos }),
     otimizarTudo: (simulacao = false) => c("otimizar_tudo", { simulacao }),
     escolherPasta: async () => {
@@ -60,6 +60,10 @@ export async function motorTauri(): Promise<Motor> {
     instalarDaSuite: async () => { throw new Error("Só no Android."); },
     verificarApks: async () => ({ analisados: 0, achados: [] }),
     appsInstalados: async () => [],
+    programas: () => c("programas_listar"),
+    desinstalarPrograma: (id, silencioso) => c("programas_desinstalar", { id, silencioso }),
+    limparRestos: (id) => c("programas_limpar_restos", { id }),
+    detalhesPrograma: async (_id, local) => { if (local) await invoke("abrir_pasta", { caminho: local }); },
     instalarAtualizacao: (url, sha256) => invoke("instalar_atualizacao", { url, sha256 })
   };
 }

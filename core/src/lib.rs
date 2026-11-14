@@ -7,5 +7,6 @@ pub mod explorador;
 pub mod hardware;
 pub mod limpeza;
 pub mod organizador;
+pub mod programas;
 pub mod regras;
 pub mod seguranca;

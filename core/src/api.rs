@@ -1,5 +1,5 @@
 //! Interface única (JSON) usada pelo app de Windows e pelos testes. O Android implementa o mesmo contrato em Kotlin.
-use crate::{arquivos, explorador, hardware, limpeza, organizador, regras, seguranca};
+use crate::{arquivos, explorador, hardware, limpeza, organizador, programas, regras, seguranca};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -141,6 +141,9 @@ pub fn executar(comando: &str, args: &Value) -> Result<Value, String> {
         "verificar_arquivos" => para(seguranca::verificar_arquivos(&raizes(args)?, u64_de(args, "profundidade", 4) as usize)),
         "programas_iniciais" => para(seguranca::programas_iniciais()),
         "verificar_hosts" => para(seguranca::verificar_hosts()),
+        "programas_listar" => para(programas::listar()?),
+        "programas_desinstalar" => para(programas::desinstalar(args.get("id").and_then(|x| x.as_str()).unwrap_or(""), bool_de(args, "silencioso", false))?),
+        "programas_limpar_restos" => para(programas::limpar_restos(args.get("id").and_then(|x| x.as_str()).unwrap_or(""))?),
         outro => Err(format!("Comando desconhecido: {outro}")),
     }
 }

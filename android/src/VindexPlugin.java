@@ -453,6 +453,8 @@ public class VindexPlugin extends Plugin {
                 return verificarApps();
             case "apps_instalados":
                 return appsInstalados();
+            case "programas_listar":
+                return new JSONObject().put("apps", programasDoAparelho());
             case "verificar_apks":
                 return verificarApks(raizes(a));
             case "verificar_arquivos":
@@ -970,6 +972,57 @@ public class VindexPlugin extends Plugin {
             achados.put(new JSONObject().put("caminho", nome + " (" + pi.packageName + ")").put("nivel", r[0]).put("motivo", r[1]));
         }
         return new JSONObject().put("analisados", analisados).put("achados", achados);
+    }
+
+    /** Todos os apps que a pessoa instalou (sem os do sistema e sem o próprio Vindex), com o tamanho do app e a data da última atualização. */
+    private JSONArray programasDoAparelho() throws JSONException {
+        Context c = getContext();
+        PackageManager pm = c.getPackageManager();
+        JSONArray lista = new JSONArray();
+        for (PackageInfo pi : pm.getInstalledPackages(0)) {
+            ApplicationInfo ai = pi.applicationInfo;
+            if (ai == null || (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0 || pi.packageName.equals(c.getPackageName())) continue;
+            long bytes = new File(ai.sourceDir).length();
+            if (ai.splitSourceDirs != null) for (String d : ai.splitSourceDirs) bytes += new File(d).length();
+            java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT);
+            lista.put(new JSONObject().put("id", pi.packageName).put("nome", String.valueOf(pm.getApplicationLabel(ai))).put("editora", "")
+                    .put("versao", pi.versionName == null ? "" : pi.versionName).put("bytes", bytes).put("instaladoEm", f.format(new java.util.Date(pi.lastUpdateTime)))
+                    .put("local", pi.packageName).put("sistema", false).put("silencioso", false));
+        }
+        return lista;
+    }
+
+    /** Abre a confirmação do Android para desinstalar (um toque em OK). Só pacotes que estão instalados e que não são o próprio Vindex. */
+    @PluginMethod
+    public void desinstalarApp(final PluginCall call) {
+        String pacote = call.getString("pacote", "");
+        try {
+            if (!pacote.matches("[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+") || pacote.equals(getContext().getPackageName())) { call.reject("App não permitido."); return; }
+            getContext().getPackageManager().getPackageInfo(pacote, 0);
+            Intent i = new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + pacote));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (PackageManager.NameNotFoundException e) {
+            call.reject("Esse app não está mais instalado.");
+        } catch (Exception e) {
+            call.reject("Não consegui abrir a desinstalação.");
+        }
+    }
+
+    /** Abre a tela de informações do app no Android (permissões, armazenamento, forçar parada). */
+    @PluginMethod
+    public void detalhesApp(final PluginCall call) {
+        String pacote = call.getString("pacote", "");
+        if (!pacote.matches("[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+")) { call.reject("App não permitido."); return; }
+        try {
+            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pacote));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Não consegui abrir os detalhes.");
+        }
     }
 
     /** Lista simples dos apps instalados pelo usuário (para o alerta de app novo e o relatório da semana). */

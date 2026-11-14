@@ -13,7 +13,7 @@ function Svg({ children, tam = 24, style, ...r }: SVGProps<SVGSVGElement> & { ta
 }
 const L = { fill: "none" } as const;
 
-export type NomeIcone = "painel" | "otimizar" | "arquivos" | "regras" | "descompactar" | "seguranca" | "cofre" | "conta" | "ajustes" | "menu" | "fechar" | "atualizar" | "rede" | "pasta" | "recentes" | "imagens" | "videos" | "audios" | "documentos" | "planilhas" | "apresentacoes" | "compactados" | "instaladores" | "codigo" | "outros";
+export type NomeIcone = "painel" | "otimizar" | "arquivos" | "regras" | "descompactar" | "seguranca" | "cofre" | "conta" | "ajustes" | "menu" | "fechar" | "atualizar" | "rede" | "pasta" | "recentes" | "imagens" | "videos" | "audios" | "documentos" | "planilhas" | "apresentacoes" | "compactados" | "instaladores" | "codigo" | "outros" | "apps";
 
 const DESENHOS: Record<NomeIcone, ReactElement> = {
   painel: <><rect x="3.5" y="3.5" width="7" height="7" rx="2" /><rect x="13.5" y="3.5" width="7" height="4.5" rx="2" {...L} /><rect x="13.5" y="11" width="7" height="9.5" rx="2" /><rect x="3.5" y="13.5" width="7" height="7" rx="2" {...L} /></>,
@@ -40,6 +40,7 @@ const DESENHOS: Record<NomeIcone, ReactElement> = {
   instaladores: <g><path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z" /><path d="M12 9v6M9.4 12.6 12 15.2l2.6-2.6" {...L} /></g>,
   codigo: <g {...L}><path d="m9 7-5 5 5 5M15 7l5 5-5 5" /></g>,
   outros: <g><path d="M6.5 3.5h7l4.5 4.5v11a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 19V5a1.5 1.5 0 0 1 1.5-1.5z" /></g>,
+  apps: <g {...L}><rect x="4" y="4" width="6.5" height="6.5" rx="1.6" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6" /><path d="m14.5 14.5 5 5M19.5 14.5l-5 5" /></g>,
   rede: <g {...L}><path d="M3.5 9.5a12 12 0 0 1 17 0M6.5 12.8a8 8 0 0 1 11 0M9.4 16a4 4 0 0 1 5.2 0" /><circle cx="12" cy="19" r="1" /></g>,
 };
 

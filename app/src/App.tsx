@@ -20,6 +20,7 @@ import { Otimizar } from "./telas/Otimizar";
 import { Painel } from "./telas/Painel";
 import { RegrasTela } from "./telas/Regras";
 import { Seguranca } from "./telas/Seguranca";
+import { Desinstalar } from "./telas/Desinstalar";
 import { atualizarSuiteAuto } from "./telas/SuiteApps";
 import { gerarRelatorio } from "./telas/RelatorioSeguranca";
 import { conferirNovos, relatorioSalvo, relatorioVencido } from "./relatorio";
@@ -34,12 +35,13 @@ const ABAS: readonly { id: string; rotulo: string; icone: NomeIcone }[] = [
   { id: "arquivos", rotulo: "Arquivos", icone: "arquivos" },
   { id: "regras", rotulo: "Regras", icone: "regras" },
   { id: "descompactar", rotulo: "Descompactar", icone: "descompactar" },
+  { id: "apps", rotulo: "Desinstalar", icone: "apps" },
   { id: "seguranca", rotulo: "Segurança", icone: "seguranca" },
   { id: "cofre", rotulo: "Cofre", icone: "cofre" },
   { id: "ajustes", rotulo: "Ajustes", icone: "ajustes" },
   { id: "conta", rotulo: "Conta", icone: "conta" }
 ] as const;
-type IdAba = "painel" | "otimizar" | "arquivos" | "regras" | "descompactar" | "seguranca" | "cofre" | "ajustes" | "conta";
+type IdAba = "painel" | "otimizar" | "arquivos" | "regras" | "descompactar" | "apps" | "seguranca" | "cofre" | "ajustes" | "conta";
 
 export function App() {
   const motor = useMotor();
@@ -224,12 +226,13 @@ export function App() {
     arquivos: <Arquivos abrirEm={pastaPedida} />,
     regras: <RegrasTela />,
     descompactar: <Descompactar inicio={inicio} aoUsarInicio={() => setInicio(null)} />,
+    apps: <Desinstalar />,
     seguranca: <Seguranca />,
     cofre: <Cofre sessao={sessao} />,
     ajustes: <AjustesTela aoAtualizar={atualizar} nova={nova} />,
     conta: sessao ? <MinhaConta sessao={sessao} aoAtualizar={definir} aoSair={() => { void sair(sessao.token); definir(null); }} /> : <Aviso>Modo demonstração: entre no app para ver sua conta.</Aviso>
   };
-  const abas = ABAS.filter((a) => a.id !== "descompactar" || motor.recursos.extrair);
+  const abas = ABAS.filter((a) => (a.id !== "descompactar" || motor.recursos.extrair) && (a.id !== "apps" || motor.recursos.desinstalar));
   const ir2 = (id: string) => { setAba(id as IdAba); setMenu(false); };
   const aoTocar = (e: TouchEvent) => { const t = e.touches[0]; inicioToque.current = t && t.clientX < 24 ? t.clientX : null; };
   const aoSoltar = (e: TouchEvent) => { const t = e.changedTouches[0]; const i = inicioToque.current; inicioToque.current = null; if (t && i != null && t.clientX - i > 60) setMenu(true); };

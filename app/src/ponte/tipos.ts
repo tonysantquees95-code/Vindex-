@@ -65,6 +65,12 @@ export interface Recursos {
   permissoes: boolean;
   /** o app se atualiza baixando o APK e abrindo a instalação */
   atualizaSozinho: boolean;
+  /** lista de programas/apps com desinstalação em um clique */
+  desinstalar: boolean;
+  /** depois de desinstalar, procura e apaga as sobras (Windows) */
+  restosDeProgramas: boolean;
+  /** desinstalar sem janelas quando o programa permite (Windows) */
+  desinstalarSilencioso: boolean;
 }
 export interface Permissao { id: string; rotulo: string; motivo: string; obrigatoria: boolean; concedida: boolean }
 
@@ -137,7 +143,20 @@ export interface Motor {
   verificarApks(raizes: string[]): Promise<ResultadoVerificacao>;
   /** Android: lista dos apps instalados pelo usuário, para o alerta de app novo. */
   appsInstalados(): Promise<AppInstalado[]>;
+  /** Windows: programas instalados. Android: apps instalados pela pessoa. */
+  programas(): Promise<ProgramaInstalado[]>;
+  /** Windows: roda o desinstalador e devolve as sobras. Android: abre a confirmação do sistema (um toque). */
+  desinstalarPrograma(id: string, silencioso: boolean): Promise<ResultadoDesinstalar>;
+  /** Windows: apaga as sobras que o Vindex achou para esse programa. */
+  limparRestos(id: string): Promise<ResultadoRestos>;
+  /** Windows: abre a pasta do programa. Android: abre as informações do app no sistema. */
+  detalhesPrograma(id: string, local: string): Promise<void>;
 }
+
+export interface ProgramaInstalado { id: string; nome: string; editora: string; versao: string; bytes: number; instaladoEm: string; local: string; sistema: boolean; silencioso: boolean }
+export interface RestoDePrograma { caminho: string; bytes: number; tipo: "pasta" | "registro" }
+export interface ResultadoDesinstalar { removido: boolean; codigo: number | null; restos: RestoDePrograma[] }
+export interface ResultadoRestos { apagados: number; bytes: number; falhas: string[] }
 
 export interface AppInstalado { pacote: string; nome: string; versao: string; foraDaLoja: boolean; instaladoEm: number }
 

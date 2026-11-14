@@ -1,5 +1,5 @@
 import { registerPlugin } from "@capacitor/core";
-import type { AppInstalado, AppSuite, Motor, Permissao } from "./tipos";
+import type { AppInstalado, AppSuite, Motor, Permissao, ProgramaInstalado } from "./tipos";
 import { pastaDeExtracao } from "../formato";
 
 /** Mesmo contrato do Rust, implementado em Kotlin (plugin "Vindex"). */
@@ -19,6 +19,8 @@ interface PluginVindex {
   cofreBioAbrir(o: { conta: string }): Promise<{ valor: string }>;
   cofreBioApagar(o: { conta: string }): Promise<void>;
   cofreProteger(o: { ligado: boolean }): Promise<void>;
+  desinstalarApp(o: { pacote: string }): Promise<void>;
+  detalhesApp(o: { pacote: string }): Promise<void>;
 }
 export const Vindex = registerPlugin<PluginVindex>("Vindex");
 
@@ -28,7 +30,7 @@ export function motorAndroid(): Motor {
   const c = async <T>(comando: string, args: Record<string, unknown> = {}): Promise<T> => JSON.parse((await Vindex.motor({ comando, args: JSON.stringify(args) })).resultado) as T;
   return {
     plataforma: "android",
-    recursos: { extrair: true, defender: false, inicializacao: false, abrirPasta: false, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: true, suite: true, permissoes: true, atualizaSozinho: true },
+    recursos: { extrair: true, defender: false, inicializacao: false, abrirPasta: false, abrirArquivos: true, arquivosSuspeitos: true, verificarApps: true, suite: true, permissoes: true, atualizaSozinho: true, desinstalar: true, restosDeProgramas: false, desinstalarSilencioso: false },
     diagnostico: (processos = 8) => c("diagnostico", { processos }),
     otimizarTudo: (simulacao = false) => c("otimizar_tudo", { simulacao }),
     escolherPasta: async () => (await Vindex.escolherPasta()).pasta,
@@ -83,6 +85,10 @@ export function motorAndroid(): Motor {
     appsDaSuite: async () => (await Vindex.appsDaSuite()).apps,
     verificarApks: (raizes) => c("verificar_apks", { raizes }),
     appsInstalados: async () => (await c<{ apps: AppInstalado[] }>("apps_instalados")).apps,
+    programas: async () => (await c<{ apps: ProgramaInstalado[] }>("programas_listar")).apps,
+    desinstalarPrograma: async (id) => { await Vindex.desinstalarApp({ pacote: id }); return { removido: false, codigo: null, restos: [] }; },
+    limparRestos: async () => ({ apagados: 0, bytes: 0, falhas: [] }),
+    detalhesPrograma: (id) => Vindex.detalhesApp({ pacote: id }),
     instalarDaSuite: (pacote, url, sha256) => Vindex.instalarDaSuite({ pacote, url, sha256 }),
     instalarAtualizacao: (url, sha256) => Vindex.instalarAtualizacao({ url, sha256 })
   };

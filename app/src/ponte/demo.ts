@@ -18,7 +18,7 @@ export function motorDemo(): Motor {
   const vazio = { movidos: [], falhas: ["Modo demonstração: abra o app do Windows ou do Android para mexer nos arquivos."], simulacao: true };
   return {
     plataforma: "demonstracao",
-    recursos: { extrair: false, defender: false, inicializacao: false, abrirPasta: false, abrirArquivos: false, arquivosSuspeitos: false, verificarApps: false, suite: false, permissoes: false, atualizaSozinho: false },
+    recursos: { extrair: false, defender: false, inicializacao: false, abrirPasta: false, abrirArquivos: false, arquivosSuspeitos: false, verificarApps: false, suite: false, permissoes: false, atualizaSozinho: false, desinstalar: false, restosDeProgramas: false, desinstalarSilencioso: false },
     diagnostico: async () => diag(),
     otimizarTudo: async () => ({ limpeza: { apagados: 0, liberado_bytes: 0, falhas: [], simulacao: true }, memoria: { suportado: false, processos_ajustados: 0, liberado_bytes: 0, nota: "Demonstração." }, ram_antes: 55, ram_depois: 55 }),
     escolherPasta: async () => null,
@@ -39,6 +39,6 @@ export function motorDemo(): Motor {
     defenderVarrer: async () => { throw new Error("Modo demonstração."); },
     verificarArquivos: async () => ({ analisados: 0, achados: [] }), programasIniciais: async () => [], verificarHosts: async () => [],
     permissoes: async () => [], pedirPermissao: async () => undefined, abrirConfiguracao: async () => undefined,
-    verificarApps: async () => ({ analisados: 0, achados: [] }), appsDaSuite: async () => [], instalarDaSuite: async () => { throw new Error("Modo demonstração."); }, verificarApks: async () => ({ analisados: 0, achados: [] }), appsInstalados: async () => [], instalarAtualizacao: async () => { throw new Error("Modo demonstração."); }
+    verificarApps: async () => ({ analisados: 0, achados: [] }), appsDaSuite: async () => [], instalarDaSuite: async () => { throw new Error("Modo demonstração."); }, verificarApks: async () => ({ analisados: 0, achados: [] }), appsInstalados: async () => [], programas: async () => [], desinstalarPrograma: async () => { throw new Error("Modo demonstração."); }, limparRestos: async () => ({ apagados: 0, bytes: 0, falhas: [] }), detalhesPrograma: async () => undefined, instalarAtualizacao: async () => { throw new Error("Modo demonstração."); }
   };
 }
